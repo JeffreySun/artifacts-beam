@@ -1,0 +1,13 @@
+{
+  "name": "artibeam",
+  "owner": {
+    "name": "Jeffrey Sun"
+  },
+  "plugins": [
+    {
+      "name": "artifacts-beam",
+      "source": "./plugins/artifacts-beam",
+      "description": "Publish HTML artifacts, create revocable share links, gather comments, and iterate on the HTML. Personal Microsoft/Google sign-in; no Azure AD required."
+    }
+  ]
+}

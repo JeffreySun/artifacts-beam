@@ -1,0 +1,14 @@
+# Codex-only skill metadata (agents/openai.yaml).
+#
+# Consumed ONLY by Codex / the ChatGPT desktop app; Copilot CLI and Claude Code
+# ignore this file. It sets user-facing UI metadata plus the invocation policy.
+#
+# NOTE: `short_description` is UI/discovery metadata shown in the ChatGPT desktop
+# app — it is NOT the implicit-trigger signal. Codex matches skills implicitly on
+# the SKILL.md frontmatter `description`, which is the canonical, cross-agent
+# trigger. This description is enriched only to aid desktop-app discoverability.
+interface:
+  display_name: "Artifacts Beam"
+  short_description: "Publish HTML artifacts, create revocable share links (view/comment, passcode, expiry), gather reviewer comments and iterate on the HTML, and manage privacy, tags, and versions."
+policy:
+  allow_implicit_invocation: true

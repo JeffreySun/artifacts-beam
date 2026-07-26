@@ -1,0 +1,22 @@
+{
+  "name": "artibeam",
+  "interface": {
+    "displayName": "Artifacts Beam"
+  },
+  "plugins": [
+    {
+      "name": "artifacts-beam",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/JeffreySun/artifacts-beam.git",
+        "path": "./plugins/artifacts-beam",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

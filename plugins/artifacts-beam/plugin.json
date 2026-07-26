@@ -1,0 +1,16 @@
+{
+  "name": "artifacts-beam",
+  "description": "Publish HTML artifacts to Artifacts Beam (the consumer review platform), create revocable share links anyone can open, gather collaborator comments, and iterate on the HTML. Personal Microsoft/Google sign-in; no Azure AD required.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Jeffrey Sun",
+    "url": "https://github.com/JeffreySun"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/JeffreySun/artifacts-beam",
+  "repository": "https://github.com/JeffreySun/artifacts-beam",
+  "keywords": ["artifacts-beam", "html", "review", "share-links", "comments", "publishing"],
+  "category": "productivity",
+  "tags": ["artibeam", "consumer", "review"],
+  "skills": "skills/"
+}

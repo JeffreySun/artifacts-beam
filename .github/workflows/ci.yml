@@ -1,0 +1,32 @@
+name: CI
+
+# Structural validation for the multi-agent packaging. The three manifests
+# (Copilot / Claude / Codex) and three marketplace files must stay in agreement;
+# this catches drift and typos before anyone installs a broken plugin.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate plugin manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate manifests + marketplaces
+        run: node scripts/validate-plugins.mjs
+      - name: Syntax-check the helper
+        run: node --check plugins/artifacts-beam/skills/artifacts-beam/scripts/abeam.mjs
