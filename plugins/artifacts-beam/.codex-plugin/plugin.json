@@ -1,6 +1,6 @@
 {
   "name": "artifacts-beam",
   "version": "0.1.0",
-  "description": "Publish HTML artifacts to Artifacts Beam (the consumer review platform), create revocable share links anyone can open, gather collaborator comments, and iterate on the HTML. Personal Microsoft/Google sign-in; no Azure AD required.",
+  "description": "Publish HTML artifacts to Artifacts Beam, create revocable share links anyone can open, gather collaborator comments, and iterate on the HTML. Sign in with a personal Microsoft or Google account — no corporate IT, admin consent, or install required for the people you share with.",
   "skills": "./skills/"
 }

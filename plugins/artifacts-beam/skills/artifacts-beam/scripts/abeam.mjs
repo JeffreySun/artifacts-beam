@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 // abeam.mjs — Artifacts Beam CLI helper.
 //
-// A zero-dependency Node.js (18+) client for the consumer Artifacts Beam service
-// (https://artifactbeam.azurewebsites.net). It is intentionally agent-agnostic so
+// A zero-dependency Node.js (18+) client for the Artifacts Beam service
+// (https://artibeam.ai). It is intentionally agent-agnostic so
 // the same helper backs the Copilot CLI, Codex, and Claude skills — only the
 // SKILL.md wrapper differs per agent.
 //
-// AUTH MODEL (important): Artifacts Beam is a CONSUMER app. It does NOT accept
-// Azure AD / `az` bearer tokens. Every API call is authenticated by an opaque,
+// AUTH MODEL (important): every API call is authenticated by an opaque,
 // HttpOnly **session cookie** (`__Host-ab_session` over https) that the site issues
-// after an interactive Microsoft-account (or Google) sign-in. This helper keeps a
+// after an interactive Microsoft-account (or Google) sign-in; there is no bearer
+// token path. This helper keeps a
 // small cookie jar in ~/.artifactsbeam/session.json and replays it on each call.
 // See `references/auth-setup.md` for how to capture the cookie once.
 //
@@ -25,7 +25,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 
-const DEFAULT_SITE = "https://artifactbeam.azurewebsites.net";
+const DEFAULT_SITE = "https://artibeam.ai";
 const CONFIG_DIR = path.join(os.homedir(), ".artifactsbeam");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 const SESSION_FILE = path.join(CONFIG_DIR, "session.json");

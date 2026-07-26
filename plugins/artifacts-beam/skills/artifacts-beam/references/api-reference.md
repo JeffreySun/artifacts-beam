@@ -5,7 +5,7 @@ The helper attaches the session cookie automatically, and the antiforgery token 
 the two endpoints that need it (multipart upload + logout). All other JSON mutations
 ride on the session cookie alone.
 
-Base URL: `https://artifactbeam.azurewebsites.net` (override with `config --site` or
+Base URL: `https://artibeam.ai` (override with `config --site` or
 `ARTIFACTSBEAM_SITE`).
 
 ## Command ↔ HTTP map
@@ -55,7 +55,7 @@ Base URL: `https://artifactbeam.azurewebsites.net` (override with `config --site
   "spec":    { "specId": "ab12…", "displayName": "x.html", "privacyMode": "private", "latestVersionNumber": 2 },
   "version": { "versionNumber": 2, "originalFileName": "x.html", "uploadedAtUtc": "…" },
   "wasExistingSpec": true,
-  "detailUrl": "https://artifactbeam.azurewebsites.net/#/specs/ab12…/v2"
+  "detailUrl": "https://artibeam.ai/#/specs/ab12…/v2"
 }
 ```
 
@@ -66,7 +66,7 @@ Base URL: `https://artifactbeam.azurewebsites.net` (override with `config --site
   "permission": "comment",
   "hasPasscode": true,
   "expiresAtUtc": "2026-06-19T00:00:00Z",
-  "url": "https://artifactbeam.azurewebsites.net/s/ZfyIrDsNURD8H5GLqESn…"
+  "url": "https://artibeam.ai/s/ZfyIrDsNURD8H5GLqESn…"
 }
 ```
 `url` is returned **only on creation** — the server stores just a hash of the token.

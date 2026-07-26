@@ -1,14 +1,12 @@
 # Artifacts Beam skill
 
-A Copilot CLI skill for **[Artifacts Beam](https://artifactbeam.azurewebsites.net)** —
-the consumer edition of the HTML review platform. Publish HTML artifacts, create
-revocable **share links** anyone can open, gather collaborator comments, and iterate
-on the HTML — signed in with a personal **Microsoft** or **Google** account (no Azure
-AD / `az` required).
+A Copilot CLI skill for **[Artifacts Beam](https://artibeam.ai)** — publish HTML
+artifacts, create revocable **share links** anyone can open, gather collaborator
+comments, and iterate on the HTML — signed in with a personal **Microsoft** or
+**Google** account.
 
-This is the consumer counterpart to the enterprise `htmlcanvas` skill. The core
-difference is **authentication**: Artifacts Beam authenticates API calls with a
-browser **session cookie**, not an AAD bearer token. See
+API calls are authenticated with a browser **session cookie**, captured once and
+reused from a local cookie jar. See
 [`references/auth-setup.md`](references/auth-setup.md).
 
 ## Layout

@@ -71,7 +71,7 @@ After applying edits and publishing, say something like:
 >   numbers and I'll add it.
 >
 > Replied on each addressed comment and reopened
-> https://artifactbeam.azurewebsites.net/#/specs/<id>/v4/review for re-review.
+> https://artibeam.ai/#/specs/<id>/v4/review for re-review.
 
 Then, per Workflow C, leave a reply on each addressed comment:
 ```bash

@@ -1,9 +1,8 @@
 # Auth setup — capturing your Artifacts Beam session (one time)
 
-Artifacts Beam is the **consumer** edition. Unlike the enterprise HTML Canvas skill,
-it does **not** accept Azure AD / `az` bearer tokens. Every API call is authenticated
-by an opaque, **HttpOnly session cookie** that the site issues after you sign in
-interactively with a personal **Microsoft** (or **Google**) account.
+Every API call is authenticated by an opaque, **HttpOnly session cookie** that the site
+issues after you sign in interactively with a personal **Microsoft** (or **Google**)
+account. There is no bearer-token or service-principal path.
 
 Because the cookie is `HttpOnly` and the app's OAuth redirect is fixed to its own
 domain, a CLI can't complete the sign-in headlessly. So the one-time step is simply
@@ -14,7 +13,7 @@ sliding activity (30 days absolute), and the helper renews it automatically as y
 
 | Item | Value |
 |---|---|
-| Site | `https://artifactbeam.azurewebsites.net` |
+| Site | `https://artibeam.ai` |
 | Session cookie (prod) | `__Host-ab_session` |
 | Session cookie (local dev) | `ab_session` |
 | Providers | Microsoft (personal accounts) · Google |
@@ -26,10 +25,10 @@ sliding activity (30 days absolute), and the helper renews it automatically as y
 node scripts/abeam.mjs login          # opens the sign-in page and prints these steps
 ```
 
-1. The browser opens to `https://artifactbeam.azurewebsites.net/api/auth/login/microsoft?returnUrl=%2F`.
+1. The browser opens to `https://artibeam.ai/api/auth/login/microsoft?returnUrl=%2F`.
 2. **Sign in** with your Microsoft or Google account. You'll land back on the app.
 3. Open **DevTools** (F12) → **Application** (Chrome/Edge) or **Storage** (Firefox)
-   → **Cookies** → `https://artifactbeam.azurewebsites.net`.
+   → **Cookies** → `https://artibeam.ai`.
 4. Find **`__Host-ab_session`** and copy its **Value** (a long opaque string).
 5. Save it:
    ```bash
@@ -52,7 +51,7 @@ is optional and not required by the helper; a minimal pattern:
 
 1. Launch a **headed** browser to the login URL above.
 2. Let the user complete the Microsoft/Google sign-in.
-3. Wait for navigation back to the `artifactbeam.azurewebsites.net` origin.
+3. Wait for navigation back to the `artibeam.ai` origin.
 4. Read the `__Host-ab_session` cookie from the browser context (automation tools can
    read HttpOnly cookies) and pass it to `login --cookie`.
 

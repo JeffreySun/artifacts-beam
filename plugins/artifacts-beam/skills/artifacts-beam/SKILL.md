@@ -1,12 +1,12 @@
 ---
 name: artifacts-beam
-description: "Publish HTML artifacts to Artifacts Beam (https://artifactbeam.azurewebsites.net), create revocable share links anyone can open, open artifacts for review, and iterate on the HTML based on collaborator comments. Artifacts Beam is the CONSUMER edition: personal Microsoft/Google sign-in, no Azure AD required. WHEN: 'publish to artifacts beam', 'upload this html to artifacts beam', 'share this mockup', 'create a share link', 'send my page for review', 'get a public link', 'fetch artifacts beam comments', 'apply the review feedback', 'iterate on the comments', 'open my artifact', 'change artifact privacy', 'reply to the comment', 'tag the artifact', 'revoke a share link'."
+description: "Publish HTML artifacts to Artifacts Beam (https://artibeam.ai), create revocable share links anyone can open, open artifacts for review, and iterate on the HTML based on collaborator comments. Artifacts Beam is the CONSUMER edition: personal Microsoft/Google sign-in, no Azure AD required. WHEN: 'publish to artifacts beam', 'upload this html to artifacts beam', 'share this mockup', 'create a share link', 'send my page for review', 'get a public link', 'fetch artifacts beam comments', 'apply the review feedback', 'iterate on the comments', 'open my artifact', 'change artifact privacy', 'reply to the comment', 'tag the artifact', 'revoke a share link'."
 license: MIT
 metadata:
   author: Jeffrey Sun
   version: "0.1.0"
   helper: scripts/abeam.mjs
-  service: https://artifactbeam.azurewebsites.net
+  service: https://artibeam.ai
 ---
 
 # Artifacts Beam
@@ -21,17 +21,15 @@ dependency Node helper at [`scripts/abeam.mjs`](scripts/abeam.mjs). The same hel
 backs the Copilot CLI, Codex, and Claude versions of this skill — only this wrapper
 differs.
 
-## How Artifacts Beam differs from the enterprise "HTML Canvas" skill
+## Authentication model (read this first)
 
-| | HTML Canvas (enterprise) | **Artifacts Beam (consumer)** |
-|---|---|---|
-| Identity | Azure AD via `az login`, Microsoft tenant only | Personal **Microsoft / Google** account |
-| Auth to API | AAD **bearer token** | Browser **session cookie** (this skill manages a cookie jar) |
-| Sharing | tenant-scoped privacy (private/public/scoped) | revocable **share links** (`/s/{token}`) + private/public |
-| Helper | PowerShell module | Cross-platform **Node.js** helper |
+Artifacts Beam authenticates every API call with an **opaque browser session cookie**,
+not a bearer token — there is no `az login` / service-principal path. So the one-time
+setup step is *capturing the session cookie from a browser sign-in*, which the helper
+then stores in a local cookie jar and reuses. See Setup below.
 
-Because there is **no `az`/bearer path**, the one-time auth step is *capturing the
-session cookie from a browser sign-in* — see Setup below.
+Sign-in is a personal **Microsoft** or **Google** account. No corporate directory, IT
+approval, or admin consent is involved.
 
 ## Triggers
 
