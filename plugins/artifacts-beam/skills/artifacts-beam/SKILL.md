@@ -63,8 +63,12 @@ The browser opens, the user signs in with Microsoft, Google, or Apple, and the t
 is signed in. **There is nothing for the user to copy or paste** — never ask them for a
 cookie, token, or code.
 
-Add `--provider google|apple` to pick a provider, or `--no-browser` to print the URL
-instead of opening it. Full walkthrough:
+Add `--provider google|apple` to pick a provider.
+
+On a machine with no reachable browser (SSH, containers, CI) the helper switches to a
+**device code** automatically; `--device` forces it. It prints a short code and a URL for
+the user to open on any other device. Relay those verbatim and wait — do not ask the user
+for the code back, and never approve on their behalf. Full walkthrough:
 [references/auth-setup.md](references/auth-setup.md).
 
 > The session is stored at `~/.artifactsbeam/session.json` (mode 600). Never print

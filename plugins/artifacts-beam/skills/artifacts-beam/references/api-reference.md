@@ -11,6 +11,7 @@ Base URL: `https://artibeam.ai` (override with `config --site` or
 | Command | HTTP | Notes |
 |---|---|---|
 | `login [--provider p] [--no-browser]` | `GET /api/auth/login/{p}?mode=cli` → `POST /api/auth/token` | Loopback + PKCE; stores the token pair |
+| `login --device` | `POST /api/auth/device/code` → poll `POST /api/auth/device/token` | RFC 8628; for machines with no reachable browser |
 | `logout` | `POST /api/auth/token/revoke` | Revokes this device's token |
 | `whoami` | `GET /api/auth/me` | Exit 2 if not authenticated |
 | `publish <file> [--open] [--review]` | `POST /api/specs` (multipart) | Auto-versions by displayName + owner |

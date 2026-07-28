@@ -43,16 +43,38 @@ The CLI holds **its own** token rather than a copy of your browser session. Sign
 website does not sign out your terminal, and signing out of the terminal does not sign out your
 browser.
 
+## Signing in without a browser on the same machine
+
+Over SSH, in a container, or on a CI runner, the loopback callback can't reach you — so the CLI
+switches to a **device code** instead. It detects this automatically; `--device` forces it.
+
+```
+$ node scripts/abeam.mjs login --device
+To sign in, visit:
+
+    https://artibeam.ai/device
+
+and enter this code:
+
+    BCDF-GHJK
+
+Waiting for approval…
+✓ Signed in as you@example.com
+```
+
+Open that URL on **any** device with a browser — your laptop, your phone — sign in, and approve.
+The terminal picks it up within a few seconds.
+
+Only ever approve a code that **you just generated**. If a code arrives by email, chat, or from
+someone claiming to be support, it is an attempt to attach your account to their machine.
+
 ## Options
 
 ```bash
 node scripts/abeam.mjs login --provider google    # microsoft (default), google, apple
-node scripts/abeam.mjs login --no-browser         # print the URL instead of opening it
+node scripts/abeam.mjs login --device             # code-on-another-device flow
+node scripts/abeam.mjs login --no-browser         # never launch a browser; just print
 ```
-
-`--no-browser` helps when the CLI can't launch a browser for you but you can still open a URL on
-the same machine (some Linux desktops, WSL). It does **not** help over SSH: the callback goes to
-`127.0.0.1` on the machine running the CLI, which is not the machine running your browser.
 
 ## Signing out
 
@@ -78,6 +100,9 @@ server at the same time.
 | Symptom | Fix |
 |---|---|
 | Browser didn't open | Run `login --no-browser` and open the printed URL yourself |
+| Signing in over SSH / in a container | Run `login --device` and approve on any device with a browser |
+| `the sign-in request was declined` | Approve rather than deny on the device page, then run `login` again |
+| `the sign-in request expired` | The code lasts 15 minutes — run `login` again for a fresh one |
 | `timed out … waiting for the browser sign-in` | The sign-in wasn't finished within 3 minutes — run `login` again |
 | `state mismatch` | Something else answered the callback. Run `login` again; if it repeats, check what else is listening on loopback ports |
 | Everything 401s after switching sites | Run `login` again for that site — credentials are per-site |

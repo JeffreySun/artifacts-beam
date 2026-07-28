@@ -93,6 +93,9 @@ Just say *"log in to artifacts beam"*. Your browser opens, you sign in with a pe
 **Microsoft**, **Google**, or **Apple** account, and you're done — nothing to copy, nothing to
 paste. Takes about fifteen seconds, and it renews itself from then on.
 
+Working over SSH or in a container? It switches automatically to a short code you approve on
+any device with a browser.
+
 Full walkthrough:
 [`references/auth-setup.md`](plugins/artifacts-beam/skills/artifacts-beam/references/auth-setup.md)
 
