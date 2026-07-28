@@ -32,9 +32,8 @@ Write-Host ("✓ Installed artifacts-beam skill to {0}" -f $dest) -ForegroundCol
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Cyan
 Write-Host "  1. Ensure Node.js 18+ is installed:  node --version"
-Write-Host "  2. Sign in once (captures the session cookie):"
+Write-Host "  2. Sign in once (opens your browser — nothing to copy or paste):"
 Write-Host "       node `"$dest\scripts\abeam.mjs`" login"
-Write-Host "     …then paste the cookie:  node `"$dest\scripts\abeam.mjs`" login --cookie `"<value>`""
 Write-Host "  3. Verify:  node `"$dest\scripts\abeam.mjs`" whoami"
 Write-Host ""
 Write-Host "See $dest\references\auth-setup.md for the full sign-in walkthrough."

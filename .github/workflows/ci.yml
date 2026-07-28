@@ -28,5 +28,12 @@ jobs:
           node-version: '20'
       - name: Validate manifests + marketplaces
         run: node scripts/validate-plugins.mjs
-      - name: Syntax-check the helper
-        run: node --check plugins/artifacts-beam/skills/artifacts-beam/scripts/abeam.mjs
+      - name: Syntax-check the helper and its modules
+        run: |
+          for f in plugins/artifacts-beam/skills/artifacts-beam/scripts/abeam.mjs \
+                   plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.mjs; do
+            node --check "$f"
+          done
+      - name: Unit tests (auth modules)
+        working-directory: plugins/artifacts-beam/skills/artifacts-beam
+        run: node --test scripts/lib/*.test.mjs

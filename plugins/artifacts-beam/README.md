@@ -38,7 +38,7 @@ at this folder:
 
 - **Node.js 18+** — the helper (`scripts/abeam.mjs`) uses the built-in global
   `fetch`/`FormData`/`Blob` (zero dependencies).
-- A browser, once, to sign in and capture the Artifacts Beam session cookie
+- A browser, once, to sign in — nothing to copy or paste
   (see [`skills/artifacts-beam/references/auth-setup.md`](skills/artifacts-beam/references/auth-setup.md)).
 
 ## Install
@@ -93,13 +93,11 @@ bash plugins/artifacts-beam/skills/artifacts-beam/scripts/install-skill.sh
 
 ## One-time sign-in
 
-Artifacts Beam authenticates every call with a browser **session cookie** (there is no
-`az`/bearer path — it's the consumer edition). Capture it once:
+Your browser opens, you sign in with a personal Microsoft, Google, or Apple account,
+and the terminal is signed in. Nothing to copy, nothing to paste.
 
 ```shell
 node plugins/artifacts-beam/skills/artifacts-beam/scripts/abeam.mjs login
-# …sign in, copy the '__Host-ab_session' cookie value, then:
-node plugins/artifacts-beam/skills/artifacts-beam/scripts/abeam.mjs login --cookie "<value>"
 node plugins/artifacts-beam/skills/artifacts-beam/scripts/abeam.mjs whoami
 ```
 

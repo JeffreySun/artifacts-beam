@@ -21,9 +21,8 @@ echo "✓ Installed $SKILL_NAME skill to $DEST"
 echo
 echo "Next steps:"
 echo "  1. Ensure Node.js 18+ is installed:  node --version"
-echo "  2. Sign in once (captures the session cookie):"
+echo "  2. Sign in once (opens your browser — nothing to copy or paste):"
 echo "       node \"$DEST/scripts/abeam.mjs\" login"
-echo "     …then paste the cookie:  node \"$DEST/scripts/abeam.mjs\" login --cookie \"<value>\""
 echo "  3. Verify:  node \"$DEST/scripts/abeam.mjs\" whoami"
 echo
 echo "See $DEST/references/auth-setup.md for the full sign-in walkthrough."
