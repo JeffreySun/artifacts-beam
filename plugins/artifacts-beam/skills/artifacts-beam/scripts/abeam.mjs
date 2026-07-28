@@ -6,16 +6,16 @@
 // the same helper backs the Copilot CLI, Codex, and Claude skills — only the
 // SKILL.md wrapper differs per agent.
 //
-// AUTH MODEL (important): every API call is authenticated by an opaque,
-// HttpOnly **session cookie** (`__Host-ab_session` over https) that the site issues
-// after an interactive Microsoft-account (or Google) sign-in; there is no bearer
-// token path. This helper keeps a
-// small cookie jar in ~/.artifactsbeam/session.json and replays it on each call.
-// See `references/auth-setup.md` for how to capture the cookie once.
+// AUTH MODEL: `login` signs in through the browser using a loopback redirect and
+// PKCE (RFC 8252) — the user never copies or pastes anything. That yields a
+// device-scoped access + refresh token pair, stored per site in
+// ~/.artifactsbeam/session.json (mode 600). Every API call then carries
+// `Authorization: Bearer <accessToken>`, and the short-lived access token is
+// refreshed transparently on a 401.
 //
-// Mutating endpoints that browsers can trigger cross-site (multipart uploads and
-// logout) additionally require an antiforgery token; this helper fetches and
-// attaches it automatically. All other JSON mutations ride on the session cookie.
+// Because bearer callers send no ambient credential, they are exempt from the
+// antiforgery token the cookie-authenticated web app needs — so no endpoint here
+// requires one. See `references/auth-setup.md`.
 //
 // Usage:  node abeam.mjs <command> [args] [--flags]
 //         node abeam.mjs help
@@ -24,11 +24,17 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import {
+  loadCredentials,
+  saveCredentials,
+  clearCredentials,
+  CONFIG_DIR,
+  SESSION_FILE,
+} from "./lib/credentials.mjs";
+import { browserLogin } from "./lib/login.mjs";
 
 const DEFAULT_SITE = "https://artibeam.ai";
-const CONFIG_DIR = path.join(os.homedir(), ".artifactsbeam");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
-const SESSION_FILE = path.join(CONFIG_DIR, "session.json");
 
 // ─── tiny JSON file store ────────────────────────────────────────────────────
 function loadJson(file, fallback) {
@@ -58,68 +64,65 @@ function getSite() {
 }
 
 function defaultCookieName() {
+  // Legacy: only used by the undocumented `login --cookie` escape hatch.
   // __Host- cookies require https; the dev server uses the plain name.
   return getSite().startsWith("https://") ? "__Host-ab_session" : "ab_session";
 }
 
-// ─── cookie jar ────────────────────────────────────────────────────────────────
-function loadJar() {
-  return loadJson(SESSION_FILE, { cookies: {} });
+// ─── auth transport ──────────────────────────────────────────────────────────
+function storeTokens(pair, account) {
+  saveCredentials(getSite(), {
+    accessToken: pair.accessToken,
+    refreshToken: pair.refreshToken,
+    accessExpiresAt: new Date(Date.now() + (pair.accessExpiresIn || 0) * 1000).toISOString(),
+    account,
+  });
 }
 
-function saveJar(jar) {
-  saveJson(SESSION_FILE, jar);
-}
-
-function cookieHeader(jar) {
-  return Object.entries(jar.cookies || {})
-    .map(([k, v]) => `${k}=${v}`)
-    .join("; ");
-}
-
-function mergeSetCookie(jar, setCookies) {
-  jar.cookies = jar.cookies || {};
-  for (const line of setCookies) {
-    const first = line.split(";")[0];
-    const eq = first.indexOf("=");
-    if (eq <= 0) continue;
-    const name = first.slice(0, eq).trim();
-    const value = first.slice(eq + 1).trim();
-    // A deletion (empty value + past expiry) drops the cookie from the jar.
-    if (value === "" || /expires=Thu, 01 Jan 1970/i.test(line)) {
-      delete jar.cookies[name];
-    } else {
-      jar.cookies[name] = value;
-    }
+// Rotate the short-lived access token rather than making the user sign in again. Rotation
+// invalidates the presented refresh token server-side, so the new pair must always be saved.
+async function refreshTokens() {
+  const site = getSite();
+  const cred = loadCredentials(site);
+  if (!cred || !cred.refreshToken) return false;
+  try {
+    const res = await fetch(`${site}/api/auth/token/refresh`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ refreshToken: cred.refreshToken }),
+    });
+    if (!res.ok) return false;
+    storeTokens(await res.json(), cred.account);
+    return true;
+  } catch {
+    return false;
   }
-}
-
-function getSetCookies(res) {
-  if (typeof res.headers.getSetCookie === "function") {
-    return res.headers.getSetCookie();
-  }
-  const raw = res.headers.get("set-cookie");
-  return raw ? [raw] : [];
 }
 
 // ─── HTTP ──────────────────────────────────────────────────────────────────────
-async function api(pathname, { method = "GET", headers = {}, body } = {}) {
-  const jar = loadJar();
+async function api(pathname, { method = "GET", headers = {}, body, retryOn401 = true } = {}) {
+  const site = getSite();
+  const cred = loadCredentials(site);
   const h = { Accept: "application/json, text/html", ...headers };
-  const cookie = cookieHeader(jar);
-  if (cookie) h.Cookie = cookie;
+  if (cred && cred.accessToken) {
+    h.Authorization = `Bearer ${cred.accessToken}`;
+  } else if (cred && cred.cookies) {
+    // Legacy v1 session cookie. Still honoured so an upgrade never strands a signed-in user
+    // mid-session; `login` now always produces tokens instead.
+    h.Cookie = Object.entries(cred.cookies)
+      .map(([k, v]) => `${k}=${v}`)
+      .join("; ");
+  }
 
   let res;
   try {
-    res = await fetch(getSite() + pathname, { method, headers: h, body, redirect: "manual" });
+    res = await fetch(site + pathname, { method, headers: h, body, redirect: "manual" });
   } catch (e) {
     fail(`Network error calling ${pathname}: ${e.message}`);
   }
 
-  const setCookies = getSetCookies(res);
-  if (setCookies.length) {
-    mergeSetCookie(jar, setCookies);
-    saveJar(jar);
+  if (res.status === 401 && retryOn401 && cred && cred.refreshToken && (await refreshTokens())) {
+    return api(pathname, { method, headers, body, retryOn401: false });
   }
   return res;
 }
@@ -145,7 +148,7 @@ async function apiJson(pathname, opts = {}) {
       (typeof body === "string" && body.slice(0, 300)) ||
       `HTTP ${res.status}`;
     if (res.status === 401) {
-      fail("Not signed in (HTTP 401). Run:  node abeam.mjs login   (see references/auth-setup.md)");
+      fail("Not signed in (HTTP 401). Run:  node abeam.mjs login");
     }
     if (res.status === 403) {
       fail(`Forbidden (HTTP 403): ${msg}. You may not be the owner of this artifact.`);
@@ -153,13 +156,6 @@ async function apiJson(pathname, opts = {}) {
     fail(`Request failed (HTTP ${res.status}): ${msg}`);
   }
   return body;
-}
-
-// Antiforgery token for multipart uploads + logout. The GET also drops the
-// matching antiforgery cookie into the jar, which the POST then replays.
-async function csrfToken() {
-  const data = await apiJson("/api/antiforgery/token");
-  return data && data.token;
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -235,51 +231,49 @@ const commands = {
     print({ site: getSite(), configFile: CONFIG_FILE, sessionFile: SESSION_FILE });
   },
 
-  // login --cookie "<value>"  (value, or "name=value", from the browser session cookie)
+  // login [--provider microsoft|google|apple] [--no-browser] [--cookie "<value>"]
   async login(_pos, flags) {
-    if (!flags.cookie) {
-      const loginUrl = `${getSite()}/api/auth/login/microsoft?returnUrl=%2F`;
-      console.log("Artifacts Beam uses an interactive sign-in. One-time setup:\n");
-      console.log(`  1. A browser will open to: ${loginUrl}`);
-      console.log("  2. Sign in with your Microsoft (or Google) account.");
-      console.log("  3. Once you land back on the app, open DevTools (F12) →");
-      console.log("     Application/Storage → Cookies → copy the value of");
-      console.log(`     '${defaultCookieName()}'.`);
-      console.log("  4. Re-run:  node abeam.mjs login --cookie \"<paste-value>\"\n");
-      console.log("See references/auth-setup.md for screenshots and a browser-assisted option.");
-      openBrowser(loginUrl);
-      return;
+    if (flags.cookie) {
+      // Undocumented legacy path, kept working only so a machine with no browser isn't stranded
+      // before the device-code flow ships. Not advertised anywhere.
+      const raw = String(flags.cookie).trim();
+      const eq = raw.indexOf("=");
+      const named = eq > 0 && /^__?[A-Za-z]/.test(raw);
+      const name = named ? raw.slice(0, eq).trim() : defaultCookieName();
+      saveCredentials(getSite(), { cookies: { [name]: named ? raw.slice(eq + 1).trim() : raw } });
+    } else {
+      let pair;
+      try {
+        pair = await browserLogin({
+          site: getSite(),
+          provider: flags.provider || "microsoft",
+          noBrowser: Boolean(flags["no-browser"]),
+          openBrowser,
+          log: (m) => console.log(m),
+        });
+      } catch (e) {
+        fail(`Sign-in failed: ${e.message}`);
+      }
+      storeTokens(pair, null);
     }
-    const raw = String(flags.cookie).trim();
-    let name = defaultCookieName();
-    let value = raw;
-    const eq = raw.indexOf("=");
-    if (eq > 0 && /^__?[A-Za-z]/.test(raw)) {
-      name = raw.slice(0, eq).trim();
-      value = raw.slice(eq + 1).trim();
-    }
-    const jar = { cookies: { [name]: value } };
-    saveJar(jar);
+
     const me = await apiJson("/api/auth/me");
     if (!me || !me.authenticated) {
-      fail("Cookie saved but the server says you are not authenticated. It may be expired — sign in again and re-copy.");
+      fail("Signed in, but the server does not recognise the credential. Please try again.");
     }
-    ok(`Signed in as ${me.email || me.alias || me.displayName}`);
+    const cred = loadCredentials(getSite());
+    saveCredentials(getSite(), { ...cred, account: { email: me.email, alias: me.alias } });
+    ok(`Signed in as ${me.email || me.alias || me.fullName}`);
   },
 
   async logout() {
     try {
-      const token = await csrfToken();
-      await api("/api/auth/logout", { method: "POST", headers: { "X-CSRF-TOKEN": token } });
+      await api("/api/auth/token/revoke", { method: "POST" });
     } catch {
       /* best-effort server-side revoke */
     }
-    try {
-      fs.rmSync(SESSION_FILE, { force: true });
-    } catch {
-      /* ignore */
-    }
-    ok("Signed out (local session cleared).");
+    clearCredentials(getSite());
+    ok("Signed out.");
   },
 
   async whoami() {
@@ -301,10 +295,8 @@ const commands = {
     if (!fs.existsSync(file)) fail(`File not found: ${file}`);
     if (!/\.(html?|htm)$/i.test(file)) fail("Only .html/.htm files can be published.");
 
-    const token = await csrfToken();
     const res = await api("/api/specs", {
       method: "POST",
-      headers: { "X-CSRF-TOKEN": token },
       body: uploadFormData(file),
     });
     const body = await readBody(res);
@@ -517,8 +509,9 @@ const commands = {
     console.log(`Artifacts Beam CLI helper — node abeam.mjs <command> [args] [--flags]
 
 Auth (see references/auth-setup.md):
-  login [--cookie "<value>"]      Capture/save the browser session cookie
-  logout                          Revoke server-side + clear local session
+  login [--provider p] [--no-browser]
+                                  Sign in through your browser (p: microsoft|google|apple)
+  logout                          Revoke this device's token + clear local state
   whoami                          Show the signed-in account
 
 Artifacts:
