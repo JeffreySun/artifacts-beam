@@ -5,8 +5,8 @@ artifacts, create revocable **share links** anyone can open, gather collaborator
 comments, and iterate on the HTML — signed in with a personal **Microsoft** or
 **Google** account.
 
-API calls are authenticated with a browser **session cookie**, captured once and
-reused from a local cookie jar. See
+`login` signs you in through your browser (loopback redirect + PKCE) and stores a
+device-scoped bearer token, refreshed automatically. See
 [`references/auth-setup.md`](references/auth-setup.md).
 
 ## Layout
@@ -29,7 +29,7 @@ artifacts-beam/
 
 - **Node.js 18+** (the helper uses the built-in global `fetch`, `FormData`, and
   `Blob` — no `npm install`, no dependencies).
-- A browser, once, to sign in and capture the session cookie.
+- A browser, once, to sign in — nothing to copy or paste.
 
 ## Install
 
@@ -65,7 +65,7 @@ agent. Keep new product behavior in `abeam.mjs` so all three skills stay in sync
 
 ## Security
 
-- The session cookie is stored at `~/.artifactsbeam/session.json` with mode `600`.
-- The helper never prints the cookie; treat it like a password.
+- Tokens are stored per site at `~/.artifactsbeam/session.json` with mode `600`.
+- The helper never prints the token; treat it like a password.
 - `node scripts/abeam.mjs logout` revokes the session server-side and deletes the
   local file.

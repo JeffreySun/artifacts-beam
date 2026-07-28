@@ -89,10 +89,9 @@ and enable `artifacts-beam`.
 
 ### First run
 
-Sign in once with a personal **Microsoft** or **Google** account at
-[artibeam.ai](https://artibeam.ai), then hand the session to the skill — just say
-*"log in to artifacts beam"* and it walks you through it. Takes about a minute, and it
-renews itself from then on.
+Just say *"log in to artifacts beam"*. Your browser opens, you sign in with a personal
+**Microsoft**, **Google**, or **Apple** account, and you're done — nothing to copy, nothing to
+paste. Takes about fifteen seconds, and it renews itself from then on.
 
 Full walkthrough:
 [`references/auth-setup.md`](plugins/artifacts-beam/skills/artifacts-beam/references/auth-setup.md)
@@ -151,7 +150,8 @@ Other       dashboard · delete · delete-version · config
 - **Node 18+** — for the helper's built-in `fetch`/`FormData`/`Blob`.
 - A browser, once, to sign in.
 
-Your session cookie is stored locally with `0600` permissions and is never committed.
+Your access token is stored locally with `0600` permissions and is never committed. It is
+scoped to this device and can be revoked on its own, without touching your browser session.
 
 ## Privacy
 

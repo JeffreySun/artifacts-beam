@@ -23,13 +23,12 @@ differs.
 
 ## Authentication model (read this first)
 
-Artifacts Beam authenticates every API call with an **opaque browser session cookie**,
-not a bearer token — there is no `az login` / service-principal path. So the one-time
-setup step is *capturing the session cookie from a browser sign-in*, which the helper
-then stores in a local cookie jar and reuses. See Setup below.
+`login` signs the user in through their **browser** using a loopback redirect and PKCE
+— nothing is copied or pasted. That yields a device-scoped bearer token which the
+helper stores per site and refreshes on its own. See Setup below.
 
-Sign-in is a personal **Microsoft** or **Google** account. No corporate directory, IT
-approval, or admin consent is involved.
+Sign-in is a personal **Microsoft**, **Google**, or **Apple** account. No corporate
+directory, IT approval, or admin consent is involved.
 
 ## Triggers
 
@@ -54,20 +53,18 @@ node scripts/abeam.mjs whoami
 - **Prints your email** → you're signed in; continue.
 - **"Not signed in"** (exit code 2) → run the one-time sign-in below.
 
-### One-time sign-in (capture the session cookie)
-
-Artifacts Beam issues an opaque, HttpOnly **session cookie** after an interactive
-sign-in; the CLI cannot perform the browser OAuth dance itself, so capture the
-cookie once (it lasts ~7 days of activity, 30 days max):
+### One-time sign-in
 
 ```bash
-node scripts/abeam.mjs login            # opens the sign-in page + prints steps
-# …sign in, copy the '__Host-ab_session' cookie from DevTools, then:
-node scripts/abeam.mjs login --cookie "<paste-the-value>"
+node scripts/abeam.mjs login
 ```
 
-`login --cookie` validates the cookie against `/api/auth/me` and reports the signed-in
-account. Full walkthrough (with the DevTools path and a browser-assisted option):
+The browser opens, the user signs in with Microsoft, Google, or Apple, and the terminal
+is signed in. **There is nothing for the user to copy or paste** — never ask them for a
+cookie, token, or code.
+
+Add `--provider google|apple` to pick a provider, or `--no-browser` to print the URL
+instead of opening it. Full walkthrough:
 [references/auth-setup.md](references/auth-setup.md).
 
 > The session is stored at `~/.artifactsbeam/session.json` (mode 600). Never print
@@ -246,23 +243,23 @@ node scripts/abeam.mjs dashboard     # owner KPI summary (totals, public/private
 - **Always confirm before deleting**, even though `--yes` is required.
 - A freshly created **share URL is shown only once** — surface it verbatim and tell
   the user to save it.
-- Never print or persist the session cookie. Never modify a file the user didn't ask
+- Never print or persist the access token. Never modify a file the user didn't ask
   you to change. Keep editing the same local `.html` so diffs stay meaningful.
 
 ## Errors
 
 | Symptom | Action |
 |---|---|
-| `Not signed in (HTTP 401)` | Run the one-time sign-in (Setup); cookie likely expired |
+| `Not signed in (HTTP 401)` | Run `login` — the refresh token expired or was revoked |
 | `Forbidden (HTTP 403)` | Caller isn't the owner — offer to publish as a new artifact instead |
 | `Request failed (HTTP 404)` | Stale URL or the artifact/version was deleted |
 | `node: command not found` | Install Node.js 18+ (the helper needs global `fetch`) |
-| Cookie "saved but not authenticated" | Sign in again and re-copy `__Host-ab_session` |
+| `timed out … waiting for the browser sign-in` | The sign-in wasn't finished in time — run `login` again |
 
 ## See also
 
 - [scripts/abeam.mjs](scripts/abeam.mjs) — the portable CLI helper (`node abeam.mjs help`)
-- [references/auth-setup.md](references/auth-setup.md) — capture the session cookie (one time)
+- [references/auth-setup.md](references/auth-setup.md) — browser sign-in (one time)
 - [references/api-reference.md](references/api-reference.md) — command ↔ HTTP endpoint map
 - [references/refinement-guide.md](references/refinement-guide.md) — how to apply review comments
 - [README.md](README.md) — installation

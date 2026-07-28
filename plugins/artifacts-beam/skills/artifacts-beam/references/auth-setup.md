@@ -1,98 +1,84 @@
-# Auth setup — capturing your Artifacts Beam session (one time)
-
-Every API call is authenticated by an opaque, **HttpOnly session cookie** that the site
-issues after you sign in interactively with a personal **Microsoft** (or **Google**)
-account. There is no bearer-token or service-principal path.
-
-Because the cookie is `HttpOnly` and the app's OAuth redirect is fixed to its own
-domain, a CLI can't complete the sign-in headlessly. So the one-time step is simply
-**capturing the cookie from a browser sign-in**. The cookie then lasts ~7 days of
-sliding activity (30 days absolute), and the helper renews it automatically as you use it.
-
-## Facts (not secrets)
-
-| Item | Value |
-|---|---|
-| Site | `https://artibeam.ai` |
-| Session cookie (prod) | `__Host-ab_session` |
-| Session cookie (local dev) | `ab_session` |
-| Providers | Microsoft (personal accounts) · Google |
-| Session store | `~/.artifactsbeam/session.json` (mode 600) |
-
-## Option 1 — DevTools copy (works everywhere, no extra tools)
+# Auth setup — signing in (one time)
 
 ```bash
-node scripts/abeam.mjs login          # opens the sign-in page and prints these steps
+node scripts/abeam.mjs login
 ```
 
-1. The browser opens to `https://artibeam.ai/api/auth/login/microsoft?returnUrl=%2F`.
-2. **Sign in** with your Microsoft or Google account. You'll land back on the app.
-3. Open **DevTools** (F12) → **Application** (Chrome/Edge) or **Storage** (Firefox)
-   → **Cookies** → `https://artibeam.ai`.
-4. Find **`__Host-ab_session`** and copy its **Value** (a long opaque string).
-5. Save it:
-   ```bash
-   node scripts/abeam.mjs login --cookie "<paste-the-value>"
-   ```
-   You can paste either the bare value or the full `__Host-ab_session=<value>` pair.
+Your browser opens, you sign in with your **Microsoft**, **Google**, or **Apple** account, and
+the terminal is signed in. There is nothing to copy and nothing to paste.
 
-The helper validates the cookie against `/api/auth/me` and prints
-`✓ Signed in as you@example.com`. Verify any time with:
+```
+$ node scripts/abeam.mjs login
+Opening your browser to sign in…
+  https://artibeam.ai/api/auth/login/microsoft?mode=cli&redirect_uri=http://127.0.0.1:54321/callback&…
+
+✓ Signed in as you@example.com
+```
+
+Verify any time:
 
 ```bash
 node scripts/abeam.mjs whoami
 ```
 
-## Option 2 — Browser-assisted capture (optional convenience)
+## How it works
 
-If you have a browser-automation tool available (e.g. Playwright or Puppeteer), you
-can script the launch-sign-in-and-read-cookie loop so you never touch DevTools. This
-is optional and not required by the helper; a minimal pattern:
+The CLI starts a one-shot web server on `127.0.0.1` on a random free port and asks the site to
+send the sign-in result straight back to it. The site returns a **single-use authorization code**,
+which the CLI trades for an access token.
 
-1. Launch a **headed** browser to the login URL above.
-2. Let the user complete the Microsoft/Google sign-in.
-3. Wait for navigation back to the `artibeam.ai` origin.
-4. Read the `__Host-ab_session` cookie from the browser context (automation tools can
-   read HttpOnly cookies) and pass it to `login --cookie`.
+The code is bound to a one-time secret (PKCE) that never leaves the CLI process, so it is useless
+to anything else that might observe it — that is what makes it safe to receive over plain HTTP on
+a loopback address.
 
-Keep this out of the core helper so the skill stays dependency-free; add it only if a
-browser-automation package is already present in your environment.
+| Item | Value |
+|---|---|
+| Site | `https://artibeam.ai` |
+| Providers | Microsoft · Google · Apple |
+| Token store | `~/.artifactsbeam/session.json` (mode 600, keyed by site) |
+| Access token | 1 hour, refreshed automatically |
+| Refresh token | 60 days, rotates on every use |
 
-## Refreshing / signing out
+The CLI holds **its own** token rather than a copy of your browser session. Signing out of the
+website does not sign out your terminal, and signing out of the terminal does not sign out your
+browser.
 
-- The session **slides**: the helper saves any rotated cookie the server returns, so
-  active use keeps you signed in up to the 30-day absolute cap.
-- When it finally expires you'll see `Not signed in (HTTP 401)` — just repeat the
-  capture above.
-- To end the session everywhere:
-  ```bash
-  node scripts/abeam.mjs logout      # revokes server-side + deletes the local session file
-  ```
+## Options
+
+```bash
+node scripts/abeam.mjs login --provider google    # microsoft (default), google, apple
+node scripts/abeam.mjs login --no-browser         # print the URL instead of opening it
+```
+
+`--no-browser` helps when the CLI can't launch a browser for you but you can still open a URL on
+the same machine (some Linux desktops, WSL). It does **not** help over SSH: the callback goes to
+`127.0.0.1` on the machine running the CLI, which is not the machine running your browser.
+
+## Signing out
+
+```bash
+node scripts/abeam.mjs logout
+```
+
+Revokes this device's token server-side and clears the local file. Other devices, and your
+browser session, are untouched.
 
 ## Targeting a different deployment
 
 ```bash
-node scripts/abeam.mjs config --site https://localhost:5001     # persist an override
-# or, per-invocation:
-ARTIFACTSBEAM_SITE=https://localhost:5001 node scripts/abeam.mjs whoami
+node scripts/abeam.mjs config --site http://localhost:5001     # persist an override
+ARTIFACTSBEAM_SITE=http://localhost:5001 node scripts/abeam.mjs whoami   # or per-invocation
 ```
 
-When the site is `http://` (local dev), the cookie name is `ab_session` (no `__Host-`
-prefix, which requires HTTPS); the helper picks the right name automatically.
-
-## Why a cookie and not a Personal Access Token?
-
-The consumer app deliberately has no token/PAT surface — it keeps the consumer
-attack surface minimal and reuses the same browser session you already have. If a
-first-class CLI auth path (device code or PAT) is added to the service later, this
-helper's `login` command is the natural place to wire it in.
+Credentials are stored per site, so you can stay signed in to production and to a local dev
+server at the same time.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| `whoami` → "Not signed in" right after login | You copied the wrong cookie — make sure it's `__Host-ab_session`, not the antiforgery `ab.xsrf` cookie |
-| `Cookie saved but … not authenticated` | The cookie is expired or truncated; sign in again and re-copy the full value |
-| Browser didn't open on `login` | Open the printed URL manually, then run `login --cookie` |
+| Browser didn't open | Run `login --no-browser` and open the printed URL yourself |
+| `timed out … waiting for the browser sign-in` | The sign-in wasn't finished within 3 minutes — run `login` again |
+| `state mismatch` | Something else answered the callback. Run `login` again; if it repeats, check what else is listening on loopback ports |
+| Everything 401s after switching sites | Run `login` again for that site — credentials are per-site |
 | `node: command not found` | Install Node.js 18+ (the helper relies on the built-in global `fetch`) |
-| Everything 401s on a self-hosted site | Confirm `config --site` matches where you signed in; the cookie is bound to that exact host |

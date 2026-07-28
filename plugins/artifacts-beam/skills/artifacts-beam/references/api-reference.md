@@ -1,9 +1,7 @@
 # API reference (skill view)
 
 Every command runs through the Node helper: `node scripts/abeam.mjs <command>`.
-The helper attaches the session cookie automatically, and the antiforgery token for
-the two endpoints that need it (multipart upload + logout). All other JSON mutations
-ride on the session cookie alone.
+The helper attaches the bearer token automatically and refreshes it when it expires.
 
 Base URL: `https://artibeam.ai` (override with `config --site` or
 `ARTIFACTSBEAM_SITE`).
@@ -12,10 +10,10 @@ Base URL: `https://artibeam.ai` (override with `config --site` or
 
 | Command | HTTP | Notes |
 |---|---|---|
-| `login --cookie "<v>"` | `GET /api/auth/me` (validate) | Stores the session cookie jar |
-| `logout` | `POST /api/auth/logout` | Antiforgery-protected; clears local session |
+| `login [--provider p] [--no-browser]` | `GET /api/auth/login/{p}?mode=cli` → `POST /api/auth/token` | Loopback + PKCE; stores the token pair |
+| `logout` | `POST /api/auth/token/revoke` | Revokes this device's token |
 | `whoami` | `GET /api/auth/me` | Exit 2 if not authenticated |
-| `publish <file> [--open] [--review]` | `POST /api/specs` (multipart, antiforgery) | Auto-versions by displayName + owner |
+| `publish <file> [--open] [--review]` | `POST /api/specs` (multipart) | Auto-versions by displayName + owner |
 | `list [q] [--tag a,b] [--page n] [--page-size n]` | `GET /api/specs?q=&tags=&page=&pageSize=` | Returns `{ items, page, pageSize, totalCount, totalPages }` |
 | `get <specId>` | `GET /api/specs/{id}` | Metadata + versions |
 | `versions <specId>` | `GET /api/specs/{id}/versions` | Version list |
@@ -37,15 +35,15 @@ Base URL: `https://artibeam.ai` (override with `config --site` or
 | `delete-version <specId> <n> --yes` | `DELETE /api/specs/{id}/versions/{n}` | Refuses the only remaining version |
 | `config [--site <url>]` | n/a | Show/persist target site |
 
-## Auth model (why some calls need an extra token)
+## Auth model
 
-- **Session cookie** (`__Host-ab_session`) authenticates *every* request.
-- The session cookie is `SameSite=Lax`, which is the app's primary CSRF defense, so
-  most JSON mutations need only the cookie.
-- **Multipart upload** (`POST /api/specs`, `/versions`) and **logout** additionally
-  call `antiforgery.ValidateRequestAsync`, so the helper first does
-  `GET /api/antiforgery/token` (which sets the antiforgery cookie + returns the token)
-  and sends `X-CSRF-TOKEN` on the POST. The helper does this for you.
+- Every request carries `Authorization: Bearer <accessToken>`.
+- The access token lasts 1 hour. On a `401` the helper rotates it using the refresh
+  token and retries the request once; only a failed refresh surfaces as "Not signed in".
+- Bearer callers send no ambient credential, so they are exempt from the antiforgery
+  token the cookie-authenticated web app needs. **No endpoint here requires one** —
+  including the multipart uploads, which did when the helper replayed a cookie.
+- Credentials are stored per site, so `config --site` never mixes deployments.
 
 ## Common return shapes
 
