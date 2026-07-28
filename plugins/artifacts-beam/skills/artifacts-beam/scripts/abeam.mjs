@@ -158,6 +158,16 @@ async function apiJson(pathname, opts = {}) {
   return body;
 }
 
+// /api/auth/me is anonymous-but-identity-aware: when the bearer token has expired it
+// answers 200 with {authenticated:false} rather than 401, so the generic 401 refresh in
+// api() never fires for it. Without this, `whoami` would report "Not signed in" an hour
+// after login even though the refresh token is still perfectly good.
+async function fetchIdentity() {
+  const me = await apiJson("/api/auth/me");
+  if (me && me.authenticated) return me;
+  return (await refreshTokens()) ? await apiJson("/api/auth/me") : me;
+}
+
 // ─── helpers ─────────────────────────────────────────────────────────────────
 function fail(message) {
   console.error(`✗ ${message}`);
@@ -257,7 +267,7 @@ const commands = {
       storeTokens(pair, null);
     }
 
-    const me = await apiJson("/api/auth/me");
+    const me = await fetchIdentity();
     if (!me || !me.authenticated) {
       fail("Signed in, but the server does not recognise the credential. Please try again.");
     }
@@ -277,7 +287,7 @@ const commands = {
   },
 
   async whoami() {
-    const me = await apiJson("/api/auth/me");
+    const me = await fetchIdentity();
     if (!me || !me.authenticated) {
       console.log("Not signed in.");
       if (me && Array.isArray(me.providers)) {
