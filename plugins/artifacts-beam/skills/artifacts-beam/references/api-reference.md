@@ -40,10 +40,11 @@ Base URL: `https://artibeam.ai` (override with `config --site` or
 
 - Every request carries `Authorization: Bearer <accessToken>`.
 - The access token lasts 1 hour. On a `401` the helper rotates it using the refresh
-  token and retries the request once; only a failed refresh surfaces as "Not signed in".
+  token and retries the request once. If there is no refresh token, or the refresh
+  fails, every command reports `Not signed in (HTTP 401). Run: node abeam.mjs login`.
 - Bearer callers send no ambient credential, so they are exempt from the antiforgery
-  token the cookie-authenticated web app needs. **No endpoint here requires one** —
-  including the multipart uploads, which did when the helper replayed a cookie.
+  token the cookie-authenticated web app needs. **No endpoint here requires one**,
+  including the multipart uploads.
 - Credentials are stored per site, so `config --site` never mixes deployments.
 
 ## Common return shapes
