@@ -50,7 +50,7 @@ function saveJson(file, data) {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
   fs.writeFileSync(file, JSON.stringify(data, null, 2), { mode: 0o600 });
   try {
-    fs.chmodSync(file, 0o600); // best-effort: keep the session cookie private
+    fs.chmodSync(file, 0o600); // best-effort: keep the tokens private
   } catch {
     /* non-POSIX filesystems */
   }
@@ -62,12 +62,6 @@ function getSite() {
   if (fromEnv) return fromEnv.replace(/\/+$/, "");
   const cfg = loadJson(CONFIG_FILE, {});
   return (cfg.site || DEFAULT_SITE).replace(/\/+$/, "");
-}
-
-function defaultCookieName() {
-  // Legacy: only used by the undocumented `login --cookie` escape hatch.
-  // __Host- cookies require https; the dev server uses the plain name.
-  return getSite().startsWith("https://") ? "__Host-ab_session" : "ab_session";
 }
 
 // ─── auth transport ──────────────────────────────────────────────────────────
@@ -107,12 +101,6 @@ async function api(pathname, { method = "GET", headers = {}, body, retryOn401 = 
   const h = { Accept: "application/json, text/html", ...headers };
   if (cred && cred.accessToken) {
     h.Authorization = `Bearer ${cred.accessToken}`;
-  } else if (cred && cred.cookies) {
-    // Legacy v1 session cookie. Still honoured so an upgrade never strands a signed-in user
-    // mid-session; `login` now always produces tokens instead.
-    h.Cookie = Object.entries(cred.cookies)
-      .map(([k, v]) => `${k}=${v}`)
-      .join("; ");
   }
 
   let res;
@@ -149,7 +137,7 @@ async function apiJson(pathname, opts = {}) {
       (typeof body === "string" && body.slice(0, 300)) ||
       `HTTP ${res.status}`;
     if (res.status === 401) {
-      fail("Not signed in (HTTP 401). Run:  node abeam.mjs login");
+      fail(NOT_SIGNED_IN);
     }
     if (res.status === 403) {
       fail(`Forbidden (HTTP 403): ${msg}. You may not be the owner of this artifact.`);
@@ -173,6 +161,17 @@ async function fetchIdentity() {
 function fail(message) {
   console.error(`✗ ${message}`);
   process.exit(1);
+}
+
+const NOT_SIGNED_IN = "Not signed in (HTTP 401). Run:  node abeam.mjs login";
+
+// Commands that read a raw response instead of going through apiJson() have to map 401
+// themselves. This is not hoisted into api(): fail() exits the process, and logout()
+// deliberately tolerates a 401 so it can still clear the local credential.
+function failIfUnauthorized(res) {
+  if (res.status === 401) {
+    fail(NOT_SIGNED_IN);
+  }
 }
 
 function ok(message) {
@@ -242,57 +241,55 @@ const commands = {
     print({ site: getSite(), configFile: CONFIG_FILE, sessionFile: SESSION_FILE });
   },
 
-  // login [--provider microsoft|google|apple] [--device] [--no-browser] [--cookie "<value>"]
+  // login [--provider microsoft|google|apple] [--device] [--no-browser]
   async login(_pos, flags) {
+    // Fail loudly rather than ignoring the flag: anyone still passing it has it baked into a
+    // script, and silently opening a browser instead would be baffling.
     if (flags.cookie) {
-      // Undocumented legacy path. Now fully superseded by --device; kept working for one release
-      // so an in-flight upgrade can't strand anyone. Not advertised anywhere.
-      const raw = String(flags.cookie).trim();
-      const eq = raw.indexOf("=");
-      const named = eq > 0 && /^__?[A-Za-z]/.test(raw);
-      const name = named ? raw.slice(0, eq).trim() : defaultCookieName();
-      saveCredentials(getSite(), { cookies: { [name]: named ? raw.slice(eq + 1).trim() : raw } });
-    } else {
-      const log = (m) => console.log(m);
-      const site = getSite();
-      // Over SSH or in a container the loopback callback is unreachable from the user's browser,
-      // so start with the device flow rather than hanging until it times out.
-      let useDevice = Boolean(flags.device) || shouldUseDeviceFlow();
-      let pair;
+      fail(
+        "The --cookie flag has been removed. Sign in with:  node abeam.mjs login\n" +
+          "  On a machine with no browser (SSH, containers), use:  node abeam.mjs login --device",
+      );
+    }
+    const log = (m) => console.log(m);
+    const site = getSite();
+    // Over SSH or in a container the loopback callback is unreachable from the user's browser,
+    // so start with the device flow rather than hanging until it times out.
+    let useDevice = Boolean(flags.device) || shouldUseDeviceFlow();
+    let pair;
 
-      if (!useDevice) {
-        try {
-          pair = await browserLogin({
-            site,
-            provider: flags.provider || "microsoft",
-            noBrowser: Boolean(flags["no-browser"]),
-            openBrowser,
-            log,
-          });
-        } catch (e) {
-          // A listener that won't bind means loopback can never work here; anything else is a
-          // real failure the user needs to see rather than a reason to change flows.
-          if (!/EACCES|EADDRINUSE|EAFNOSUPPORT|listen/i.test(e.message)) {
-            fail(`Sign-in failed: ${e.message}`);
-          }
-          log("Couldn't open a local callback port — falling back to device sign-in.\n");
-          useDevice = true;
-        }
-      }
-
-      if (useDevice) {
-        try {
-          pair = await deviceLogin({
-            site,
-            log,
-            openBrowser: flags["no-browser"] ? null : openBrowser,
-          });
-        } catch (e) {
+    if (!useDevice) {
+      try {
+        pair = await browserLogin({
+          site,
+          provider: flags.provider || "microsoft",
+          noBrowser: Boolean(flags["no-browser"]),
+          openBrowser,
+          log,
+        });
+      } catch (e) {
+        // A listener that won't bind means loopback can never work here; anything else is a
+        // real failure the user needs to see rather than a reason to change flows.
+        if (!/EACCES|EADDRINUSE|EAFNOSUPPORT|listen/i.test(e.message)) {
           fail(`Sign-in failed: ${e.message}`);
         }
+        log("Couldn't open a local callback port — falling back to device sign-in.\n");
+        useDevice = true;
       }
-      storeTokens(pair, null);
     }
+
+    if (useDevice) {
+      try {
+        pair = await deviceLogin({
+          site,
+          log,
+          openBrowser: flags["no-browser"] ? null : openBrowser,
+        });
+      } catch (e) {
+        fail(`Sign-in failed: ${e.message}`);
+      }
+    }
+    storeTokens(pair, null);
 
     const me = await fetchIdentity();
     if (!me || !me.authenticated) {
@@ -316,7 +313,7 @@ const commands = {
   async whoami() {
     const me = await fetchIdentity();
     if (!me || !me.authenticated) {
-      console.log("Not signed in.");
+      console.log("Not signed in.  Run:  node abeam.mjs login");
       if (me && Array.isArray(me.providers)) {
         console.log("Available providers: " + me.providers.map((p) => p.displayName).join(", "));
       }
@@ -336,6 +333,7 @@ const commands = {
       method: "POST",
       body: uploadFormData(file),
     });
+    failIfUnauthorized(res);
     const body = await readBody(res);
     if (!res.ok) {
       const msg = (body && body.error) || `HTTP ${res.status}`;
@@ -388,6 +386,7 @@ const commands = {
       `/api/specs/${encodeURIComponent(pos[0])}/versions/${version}/content`,
       { headers: { Accept: "text/html, application/json" } }
     );
+    failIfUnauthorized(res);
     if (!res.ok) fail(`Could not fetch content (HTTP ${res.status}).`);
     const html = await res.text();
     if (flags.out) {

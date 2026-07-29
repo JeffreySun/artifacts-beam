@@ -4,6 +4,10 @@
 // broke whenever `config --site` pointed the helper at a different deployment: the session cookie
 // is host-bound, so replaying it elsewhere always 401s. Keying by origin makes that impossible,
 // and lets production and a local dev server be signed in at the same time.
+//
+// Cookie auth is gone entirely. Any cookie left in a stored credential is inert, so migration
+// strips it rather than carrying a dead field forward — which leaves the user cleanly "not
+// signed in" and pointed at `login`, instead of authenticated-looking but 401ing on every call.
 
 import fs from "node:fs";
 import os from "node:os";
@@ -12,20 +16,32 @@ import path from "node:path";
 export const CONFIG_DIR = path.join(os.homedir(), ".artifactsbeam");
 export const SESSION_FILE = path.join(CONFIG_DIR, "session.json");
 
-/** Normalises any stored shape (v1 cookie jar, v2 store, or garbage) to the v2 store shape. */
+/** A credential is usable only if it carries a token; a leftover cookie is dead weight. */
+function withoutCookies(credential) {
+  if (!credential || typeof credential !== "object") return null;
+  const { cookies, ...rest } = credential;
+  return rest.accessToken || rest.refreshToken ? rest : null;
+}
+
+/**
+ * Normalises any stored shape (v1 cookie jar, v2 store, or garbage) to the v2 store shape,
+ * dropping credentials that only ever held a now-unusable cookie.
+ */
 export function migrate(raw, origin) {
+  const empty = { version: 2, credentials: {} };
   if (!raw || typeof raw !== "object") {
-    return { version: 2, credentials: {} };
+    return empty;
   }
   if (raw.version === 2 && raw.credentials && typeof raw.credentials === "object") {
-    return raw;
+    const credentials = {};
+    for (const [key, value] of Object.entries(raw.credentials)) {
+      const usable = withoutCookies(value);
+      if (usable) credentials[key] = usable;
+    }
+    return { version: 2, credentials };
   }
-  const store = { version: 2, credentials: {} };
-  const cookies = raw.cookies;
-  if (cookies && typeof cookies === "object" && Object.keys(cookies).length > 0) {
-    store.credentials[origin] = { cookies };
-  }
-  return store;
+  // v1 was a bare cookie jar. Nothing in it can authenticate anything now.
+  return empty;
 }
 
 function readStore(origin) {

@@ -20,7 +20,7 @@ artifacts-beam/
 │   ├── install-skill.ps1         # install to ~/.agents/skills (Windows)
 │   └── install-skill.sh          # install to ~/.agents/skills (macOS/Linux)
 └── references/
-    ├── auth-setup.md             # one-time session-cookie capture
+    ├── auth-setup.md             # one-time browser sign-in
     ├── api-reference.md          # command ↔ HTTP endpoint map
     └── refinement-guide.md       # how to apply review comments
 ```
@@ -49,7 +49,7 @@ discovers it.
 ## Quick start
 
 ```bash
-node scripts/abeam.mjs login        # sign in once, capture the cookie (see auth-setup.md)
+node scripts/abeam.mjs login        # sign in via your browser (see auth-setup.md)
 node scripts/abeam.mjs whoami       # confirm
 node scripts/abeam.mjs publish ./mockup.html --open
 node scripts/abeam.mjs share-create <specId> --permission comment --expires-days 7
