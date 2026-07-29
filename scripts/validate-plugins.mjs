@@ -190,11 +190,66 @@ try {
 }
 
 // ── 5: Codex agents/openai.yaml ───────────────────────────────────────────────
+// NOTE the casing split, which is genuinely part of the Codex contract and not a typo:
+// openai.yaml uses snake_case, while the interface block in .codex-plugin/plugin.json
+// uses camelCase. Don't "fix" one to match the other.
 try {
   const yaml = readText(path.join(SKILL_DIR, "agents", "openai.yaml"));
   if (!/allow_implicit_invocation:\s*(true|false)\b/.test(yaml))
     fail("openai.yaml: missing policy.allow_implicit_invocation boolean");
   else ok("openai.yaml: allow_implicit_invocation set ✓");
+
+  // Codex spec: short_description is a UI blurb constrained to 25–64 characters.
+  const sd = yaml.match(/^\s*short_description:\s*"(.*)"\s*$/m);
+  if (!sd) fail("openai.yaml: missing interface.short_description");
+  else if (sd[1].length < 25 || sd[1].length > 64)
+    fail(`openai.yaml: short_description is ${sd[1].length} chars, must be 25–64`);
+  else ok(`openai.yaml: short_description length ${sd[1].length} ✓`);
+
+  // The default prompt must name the skill as $<name> so Codex can render it.
+  const dp = yaml.match(/^\s*default_prompt:\s*"(.*)"\s*$/m);
+  if (!dp) fail("openai.yaml: missing interface.default_prompt");
+  else if (!dp[1].includes(`$${EXPECT_NAME}`))
+    fail(`openai.yaml: default_prompt must mention "$${EXPECT_NAME}"`);
+  else ok("openai.yaml: default_prompt names the skill ✓");
+} catch (e) {
+  fail(e.message);
+}
+
+// ── 6: Codex .codex-plugin/plugin.json interface contract ─────────────────────
+// Mirrors OpenAI's official validate_plugin.py, so drift is caught here rather than
+// at install time. Source: openai/codex codex-rs/skills/src/assets/samples/
+// plugin-creator/scripts/validate_plugin.py
+try {
+  const m = readJson(path.join(PLUGIN_DIR, ".codex-plugin", "plugin.json"));
+  const allowed = new Set(["id", "name", "version", "description", "skills", "apps",
+    "mcpServers", "interface", "author", "homepage", "repository", "license", "keywords"]);
+  const extra = Object.keys(m).filter((k) => !allowed.has(k));
+  if (extra.length) fail(`Codex plugin.json: fields not accepted by Codex: ${extra.join(", ")}`);
+
+  if (!/^\d+\.\d+\.\d+(?:-[\w.]+)?(?:\+[\w.]+)?$/.test(m.version || ""))
+    fail(`Codex plugin.json: version "${m.version}" must be strict semver`);
+
+  if (!m.author || typeof m.author !== "object" || !m.author.name)
+    fail("Codex plugin.json: author must be an object with a name");
+
+  const iface = m.interface;
+  if (!iface || typeof iface !== "object") {
+    fail("Codex plugin.json: interface must be an object");
+  } else {
+    for (const f of ["displayName", "shortDescription", "longDescription", "developerName", "category"]) {
+      if (typeof iface[f] !== "string" || !iface[f].trim())
+        fail(`Codex plugin.json: interface.${f} must be a non-empty string`);
+    }
+    if (!("defaultPrompt" in iface) && !("default_prompt" in iface))
+      fail("Codex plugin.json: interface.defaultPrompt is required");
+    if (!Array.isArray(iface.capabilities) || !iface.capabilities.length ||
+        !iface.capabilities.every((c) => typeof c === "string" && c.trim()))
+      fail("Codex plugin.json: interface.capabilities must be a non-empty array of strings");
+    if (iface.brandColor && !/^#[0-9A-Fa-f]{6}$/.test(iface.brandColor))
+      fail("Codex plugin.json: interface.brandColor must be #RRGGBB");
+    if (!errors.length) ok("Codex plugin.json: interface contract ✓");
+  }
 } catch (e) {
   fail(e.message);
 }

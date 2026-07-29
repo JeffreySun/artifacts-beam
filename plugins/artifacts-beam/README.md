@@ -5,10 +5,11 @@ skill into three coding agents — **GitHub Copilot CLI**, **Claude Code**, and 
 Codex** — from one source of truth. There is exactly one copy of the skill; each agent
 reads its own manifest and they all load the same `skills/artifacts-beam/`.
 
-The skill lets you publish local HTML to **Artifacts Beam** (the consumer review
-platform), create revocable **share links** anyone can open, gather collaborator
-comments, and iterate on the HTML — signed in with a personal Microsoft/Google account
-(no Azure AD). See [`skills/artifacts-beam/SKILL.md`](skills/artifacts-beam/SKILL.md).
+The skill lets you publish local HTML to **Artifacts Beam**, create revocable **share
+links** anyone can open without an account, pull reviewer comments back into your chat,
+and iterate on the HTML. You sign in once through your browser with a personal
+Microsoft, Google, or Apple account. See
+[`skills/artifacts-beam/SKILL.md`](skills/artifacts-beam/SKILL.md).
 
 ## Layout
 
@@ -74,11 +75,12 @@ matching intent). Refresh the catalog with `/plugin marketplace update`.
 
 ```shell
 codex plugin marketplace add JeffreySun/artifacts-beam
+codex plugin add artifacts-beam@artibeam
 ```
 
-Then open the **ChatGPT desktop app → Plugins**, select the **Artifacts Beam**
-marketplace, and install/enable `artifacts-beam`. Codex activates the skill implicitly
-on matching intent, or explicitly via `$artifacts-beam`.
+Adding the marketplace only makes the plugin *available*; the second command installs it.
+You can also install/enable it from the **ChatGPT desktop app → Plugins**. Codex activates
+the skill implicitly on matching intent, or explicitly via `$artifacts-beam`.
 
 For local development you can skip the marketplace entirely — Codex also discovers
 skills dropped into `.agents/skills`:

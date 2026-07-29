@@ -1,20 +1,20 @@
 ---
 name: artifacts-beam
-description: "Publish HTML artifacts to Artifacts Beam (https://artibeam.ai), create revocable share links anyone can open, open artifacts for review, and iterate on the HTML based on collaborator comments. Artifacts Beam is the CONSUMER edition: personal Microsoft/Google sign-in, no Azure AD required. WHEN: 'publish to artifacts beam', 'upload this html to artifacts beam', 'share this mockup', 'create a share link', 'send my page for review', 'get a public link', 'fetch artifacts beam comments', 'apply the review feedback', 'iterate on the comments', 'open my artifact', 'change artifact privacy', 'reply to the comment', 'tag the artifact', 'revoke a share link'."
+description: "Publish local HTML to Artifacts Beam (https://artibeam.ai), create revocable share links anyone can open without an account, pull reviewer comments back into the chat, and iterate on the HTML. Sign in through the browser with a personal Microsoft, Google, or Apple account; on a machine with no browser (SSH, containers) use a device code. WHEN: 'publish to artifacts beam', 'upload this html to artifacts beam', 'share this mockup', 'create a share link', 'send my page for review', 'get a public link', 'fetch artifacts beam comments', 'apply the review feedback', 'iterate on the comments', 'open my artifact', 'change artifact privacy', 'reply to the comment', 'tag the artifact', 'revoke a share link', 'log in to artifacts beam', 'sign in to artifacts beam'."
 license: MIT
 metadata:
   author: Jeffrey Sun
-  version: "0.1.0"
+  version: "0.2.0"
   helper: scripts/abeam.mjs
   service: https://artibeam.ai
 ---
 
 # Artifacts Beam
 
-> A skill for publishing HTML artifacts to **Artifacts Beam**, the consumer edition
-> of the review platform. Create revocable **share links** anyone can open, gather
-> comments from collaborators, and close the loop by refining the HTML — all signed
-> in with a personal Microsoft (or Google) account, no corporate Azure AD needed.
+> A skill for publishing HTML to **Artifacts Beam**. Create revocable **share links**
+> anyone can open — no account, no install, no sign-up for your reviewers — gather
+> their comments, and close the loop by refining the HTML. You sign in once through
+> your browser with a personal Microsoft, Google, or Apple account.
 
 This skill is **agent-agnostic**: every action runs through the portable, zero-
 dependency Node helper at [`scripts/abeam.mjs`](scripts/abeam.mjs). The same helper

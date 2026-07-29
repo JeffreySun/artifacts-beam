@@ -3,12 +3,18 @@
 # Consumed ONLY by Codex / the ChatGPT desktop app; Copilot CLI and Claude Code
 # ignore this file. It sets user-facing UI metadata plus the invocation policy.
 #
-# NOTE: `short_description` is UI/discovery metadata shown in the ChatGPT desktop
-# app — it is NOT the implicit-trigger signal. Codex matches skills implicitly on
-# the SKILL.md frontmatter `description`, which is the canonical, cross-agent
-# trigger. This description is enriched only to aid desktop-app discoverability.
+# CASING GOTCHA: this file uses snake_case (display_name, short_description), while
+# the interface block in ../../.codex-plugin/plugin.json uses camelCase
+# (displayName, shortDescription). Both are correct for their own file — don't
+# "fix" one to match the other.
+#
+# `short_description` is UI/discovery metadata and is spec-limited to 25–64
+# characters. It is NOT the implicit-trigger signal: Codex matches skills
+# implicitly on the SKILL.md frontmatter `description`, which is the canonical,
+# cross-agent trigger.
 interface:
   display_name: "Artifacts Beam"
-  short_description: "Publish HTML artifacts, create revocable share links (view/comment, passcode, expiry), gather reviewer comments and iterate on the HTML, and manage privacy, tags, and versions."
+  short_description: "Publish HTML and share it for review"
+  default_prompt: "Use $artifacts-beam to publish this HTML and give me a link my team can comment on."
 policy:
   allow_implicit_invocation: true

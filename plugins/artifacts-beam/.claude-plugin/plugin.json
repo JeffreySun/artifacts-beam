@@ -1,7 +1,7 @@
 {
   "name": "artifacts-beam",
-  "description": "Publish HTML artifacts to Artifacts Beam, create revocable share links anyone can open, gather collaborator comments, and iterate on the HTML. Sign in with a personal Microsoft or Google account — no corporate IT, admin consent, or install required for the people you share with.",
-  "version": "0.1.0",
+  "description": "Publish local HTML to Artifacts Beam, create revocable share links anyone can open without an account, pull reviewer comments back into your chat, and iterate on the HTML. Sign in through your browser with a personal Microsoft, Google, or Apple account \u2014 nothing to copy or paste.",
+  "version": "0.2.0",
   "author": {
     "name": "Jeffrey Sun",
     "url": "https://github.com/JeffreySun"
