@@ -32,6 +32,7 @@ import {
   SESSION_FILE,
 } from "./lib/credentials.mjs";
 import { browserLogin } from "./lib/login.mjs";
+import { deviceLogin, shouldUseDeviceFlow } from "./lib/deviceLogin.mjs";
 
 const DEFAULT_SITE = "https://artibeam.ai";
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
@@ -241,28 +242,54 @@ const commands = {
     print({ site: getSite(), configFile: CONFIG_FILE, sessionFile: SESSION_FILE });
   },
 
-  // login [--provider microsoft|google|apple] [--no-browser] [--cookie "<value>"]
+  // login [--provider microsoft|google|apple] [--device] [--no-browser] [--cookie "<value>"]
   async login(_pos, flags) {
     if (flags.cookie) {
-      // Undocumented legacy path, kept working only so a machine with no browser isn't stranded
-      // before the device-code flow ships. Not advertised anywhere.
+      // Undocumented legacy path. Now fully superseded by --device; kept working for one release
+      // so an in-flight upgrade can't strand anyone. Not advertised anywhere.
       const raw = String(flags.cookie).trim();
       const eq = raw.indexOf("=");
       const named = eq > 0 && /^__?[A-Za-z]/.test(raw);
       const name = named ? raw.slice(0, eq).trim() : defaultCookieName();
       saveCredentials(getSite(), { cookies: { [name]: named ? raw.slice(eq + 1).trim() : raw } });
     } else {
+      const log = (m) => console.log(m);
+      const site = getSite();
+      // Over SSH or in a container the loopback callback is unreachable from the user's browser,
+      // so start with the device flow rather than hanging until it times out.
+      let useDevice = Boolean(flags.device) || shouldUseDeviceFlow();
       let pair;
-      try {
-        pair = await browserLogin({
-          site: getSite(),
-          provider: flags.provider || "microsoft",
-          noBrowser: Boolean(flags["no-browser"]),
-          openBrowser,
-          log: (m) => console.log(m),
-        });
-      } catch (e) {
-        fail(`Sign-in failed: ${e.message}`);
+
+      if (!useDevice) {
+        try {
+          pair = await browserLogin({
+            site,
+            provider: flags.provider || "microsoft",
+            noBrowser: Boolean(flags["no-browser"]),
+            openBrowser,
+            log,
+          });
+        } catch (e) {
+          // A listener that won't bind means loopback can never work here; anything else is a
+          // real failure the user needs to see rather than a reason to change flows.
+          if (!/EACCES|EADDRINUSE|EAFNOSUPPORT|listen/i.test(e.message)) {
+            fail(`Sign-in failed: ${e.message}`);
+          }
+          log("Couldn't open a local callback port — falling back to device sign-in.\n");
+          useDevice = true;
+        }
+      }
+
+      if (useDevice) {
+        try {
+          pair = await deviceLogin({
+            site,
+            log,
+            openBrowser: flags["no-browser"] ? null : openBrowser,
+          });
+        } catch (e) {
+          fail(`Sign-in failed: ${e.message}`);
+        }
       }
       storeTokens(pair, null);
     }
@@ -519,8 +546,9 @@ const commands = {
     console.log(`Artifacts Beam CLI helper — node abeam.mjs <command> [args] [--flags]
 
 Auth (see references/auth-setup.md):
-  login [--provider p] [--no-browser]
+  login [--provider p] [--device] [--no-browser]
                                   Sign in through your browser (p: microsoft|google|apple)
+                                  --device: show a code to enter on another device (SSH, containers)
   logout                          Revoke this device's token + clear local state
   whoami                          Show the signed-in account
 
