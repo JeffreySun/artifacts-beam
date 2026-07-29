@@ -1,12 +1,14 @@
 # Artifacts Beam skill
 
-A Copilot CLI skill for **[Artifacts Beam](https://artibeam.ai)** — publish HTML
-artifacts, create revocable **share links** anyone can open, gather collaborator
-comments, and iterate on the HTML — signed in with a personal **Microsoft** or
-**Google** account.
+An agent-agnostic skill for **[Artifacts Beam](https://artibeam.ai)** — publish HTML,
+create revocable **share links** anyone can open without an account, pull reviewer
+comments back into the chat, and iterate on the HTML. The same skill backs **GitHub
+Copilot CLI**, **Claude Code**, and **OpenAI Codex**.
 
-`login` signs you in through your browser (loopback redirect + PKCE) and stores a
-device-scoped bearer token, refreshed automatically. See
+`login` signs you in through your browser (loopback redirect + PKCE) with a personal
+**Microsoft**, **Google**, or **Apple** account and stores a device-scoped bearer token,
+refreshed automatically. On a machine with no reachable browser — SSH, containers, CI —
+it falls back to a **device code** you approve elsewhere. See
 [`references/auth-setup.md`](references/auth-setup.md).
 
 ## Layout

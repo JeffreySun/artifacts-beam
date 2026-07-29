@@ -1,6 +1,31 @@
 {
   "name": "artifacts-beam",
-  "version": "0.1.0",
-  "description": "Publish HTML artifacts to Artifacts Beam, create revocable share links anyone can open, gather collaborator comments, and iterate on the HTML. Sign in with a personal Microsoft or Google account — no corporate IT, admin consent, or install required for the people you share with.",
-  "skills": "./skills/"
+  "version": "0.2.0",
+  "description": "Publish local HTML to Artifacts Beam, create revocable share links anyone can open without an account, pull reviewer comments back into your chat, and iterate on the HTML. Sign in through your browser with a personal Microsoft, Google, or Apple account — nothing to copy or paste.",
+  "author": {
+    "name": "Jeffrey Sun",
+    "url": "https://github.com/JeffreySun"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/JeffreySun/artifacts-beam",
+  "repository": "https://github.com/JeffreySun/artifacts-beam",
+  "keywords": ["artifacts-beam", "html", "review", "share-links", "comments", "mockup"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Artifacts Beam",
+    "shortDescription": "Publish HTML and share it for review",
+    "longDescription": "Turn a local HTML file into a link your team can open and comment on — no deploy, no branch, no build. Share links are revocable and can carry an expiry or a passcode, and reviewers need no account, no install, and no sign-up. Comments come back into your chat so your agent can apply them and publish a new version. Re-publishing the same file versions it automatically.",
+    "developerName": "Jeffrey Sun",
+    "category": "Productivity",
+    "capabilities": [
+      "Publish local HTML and auto-version it on re-publish",
+      "Create revocable share links with optional expiry and passcode",
+      "Read reviewer comments and reply or resolve them",
+      "Apply review feedback to the HTML and publish a new version",
+      "Manage artifact privacy, tags, and versions"
+    ],
+    "defaultPrompt": "Use $artifacts-beam to publish this HTML and give me a link my team can comment on.",
+    "websiteURL": "https://artibeam.ai",
+    "brandColor": "#6F42C1"
+  }
 }

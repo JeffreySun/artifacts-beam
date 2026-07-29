@@ -7,7 +7,7 @@
     {
       "name": "artifacts-beam",
       "source": "./plugins/artifacts-beam",
-      "description": "Publish HTML artifacts, create revocable share links, gather comments, and iterate on the HTML. Sign in with a personal Microsoft or Google account; reviewers need no account at all."
+      "description": "Publish local HTML, share a revocable link anyone can open without signing up, and pull reviewer comments back into your chat to iterate."
     }
   ]
 }

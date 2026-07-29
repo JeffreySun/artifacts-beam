@@ -53,7 +53,7 @@ click a link and type. That's the whole loop.
 | | |
 |---|---|
 | 🔗 **Links, not deployments** | One command turns a local `.html` into a URL. No server, no branch, no build. |
-| 👥 **Reviewers need nothing** | No account, no install, no login. A browser is the only requirement. |
+| 👥 **Reviewers need nothing** | No account, no install, no sign-up. A browser is the only requirement. |
 | 🔒 **You stay in control** | Links are revocable, and can carry an expiry date and a passcode. |
 | 💬 **Comments come to you** | Your agent reads the feedback and edits the HTML — you never re-type a review. |
 | 🕒 **Versions are automatic** | Re-publishing the same file makes v2, v3, v4… with full history. |
@@ -79,10 +79,11 @@ copilot plugin install artifacts-beam@artibeam
 
 ```shell
 codex plugin marketplace add JeffreySun/artifacts-beam
+codex plugin add artifacts-beam@artibeam
 ```
 
-Then open the **ChatGPT desktop app → Plugins**, pick the **Artifacts Beam** marketplace,
-and enable `artifacts-beam`.
+Adding the marketplace only makes the plugin *available* — the second command installs it.
+You can also enable it from the **ChatGPT desktop app → Plugins**.
 
 > `artifacts-beam` is the plugin; `artibeam` is the marketplace it ships in — hence
 > `artifacts-beam@artibeam`.
@@ -138,7 +139,7 @@ Three marketplace files expose that single plugin folder — `.github/plugin/` (
 <summary><b>The helper's full command surface</b> (the agent calls these for you)</summary>
 
 ```
-Auth        login · logout · whoami
+Auth        login [--provider microsoft|google|apple] [--device] · logout · whoami
 Artifacts   publish · list · get · versions · content · open
 Share links share-create · share-list · share-revoke
 Review      comments · reply · comment-state
@@ -151,7 +152,7 @@ Other       dashboard · delete · delete-version · config
 ## Requirements
 
 - **Node 18+** — for the helper's built-in `fetch`/`FormData`/`Blob`.
-- A browser, once, to sign in.
+- A browser, once, to sign in — on the same machine, or any other one if you use `--device`.
 
 Your access token is stored locally with `0600` permissions and is never committed. It is
 scoped to this device and can be revoked on its own, without touching your browser session.
@@ -165,12 +166,27 @@ scoped to view-only, given an expiry, or locked behind a passcode.
 ## Development
 
 ```shell
-node scripts/validate-plugins.mjs
+node scripts/validate-plugins.mjs                    # packaging gate (CI)
+node --test plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.test.mjs   # helper unit tests
 ```
 
-This is the CI gate: it checks that all three manifests agree on name and version, that every
-marketplace entry resolves to the plugin folder, and that the skill frontmatter is intact — so
-the packaging can't silently drift.
+`validate-plugins.mjs` is the CI gate. It checks that all three manifests agree on name and
+version, that every marketplace entry resolves to the plugin folder, that the skill frontmatter
+is intact, and that the Codex-specific contract holds — `.codex-plugin/plugin.json` carries the
+required `author` and `interface` blocks, and `agents/openai.yaml` keeps `short_description`
+inside the 25–64 character limit with a `default_prompt` that names `$artifacts-beam`.
+
+Those Codex rules mirror OpenAI's own
+[`validate_plugin.py`](https://github.com/openai/codex/blob/main/codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py),
+so drift is caught here rather than at install time. To check against the real thing:
+
+```shell
+python3 validate_plugin.py plugins/artifacts-beam
+```
+
+> One deliberate inconsistency: `agents/openai.yaml` uses snake_case (`display_name`) while the
+> `interface` block in `.codex-plugin/plugin.json` uses camelCase (`displayName`). Both are
+> correct per the Codex spec — don't "fix" one to match the other.
 
 Issues and PRs welcome.
 
