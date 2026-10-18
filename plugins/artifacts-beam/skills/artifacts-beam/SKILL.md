@@ -189,6 +189,8 @@ Read `feedback`, `selectedCount`, `totalCount`, and `remainingCount`. A nonzero
 `remainingCount` means the packet is **not all feedback**; report it and handle
 further explicitly selected batches. `--selected comment:<id>,annotation:<id>`,
 `--authored-version`, and `--base-version` narrow the capture.
+If both selected and remaining counts are zero, report no matching feedback
+and stop; do not invent edits.
 
 For a simple lookup, use `comments --filter open` or `annotations --version <N>`.
 Do not equate an empty text field with no feedback: region/ink annotations may

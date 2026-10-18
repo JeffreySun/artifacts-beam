@@ -82,6 +82,8 @@ try {
   const files = ["plugin.json"];
   for (const relative of [...tracked].sort()) {
     if (relative === CODEX || relative.endsWith(".test.mjs")) continue;
+    if (/(^|\/)(\.env(?:\.[^/]*)?|\.artifactsbeam|\.abeam|abeam-cookies\.txt|session\.json)(\/|$)/i.test(relative))
+      throw new Error(`Refusing to package credential or private auth state: ${relative}`);
     const target = relative === "LICENSE" ? "LICENSE" : relative.slice(PLUGIN.length + 1);
     stage(target, fs.readFileSync(regularFile(relative)));
     files.push(target);

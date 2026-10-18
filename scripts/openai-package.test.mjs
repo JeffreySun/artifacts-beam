@@ -161,6 +161,19 @@ test("the upload allowlist excludes wrappers, tests, and untracked credentials",
   assert.ok(!files.some((file) => /\.test\.mjs$|\.env$|session\.json$|untracked|\.claude-plugin|\.codex-plugin|\.git\//.test(file)));
 });
 
+test("accidentally tracked device credentials are refused rather than archived", (t) => {
+  const root = trackedFixture(t);
+  const state = `${PLUGIN}/skills/artifacts-beam/.artifactsbeam/session.json`;
+  fs.mkdirSync(path.dirname(path.join(root, state)), { recursive: true });
+  fs.writeFileSync(path.join(root, state), JSON.stringify({ accessToken: "fake-test-credential" }));
+  const tracked = spawnSync("git", ["-C", root, "add", "-f", "--", state], { encoding: "utf8" });
+  assert.equal(tracked.status, 0, tracked.stderr);
+  const result = run(root, "package-openai.mjs");
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /credential|auth.*state|private.*state/i);
+  assert.ok(!fs.existsSync(archivePath(root)));
+});
+
 test("rebuilding unchanged contents is independent of source timestamps", (t) => {
   const root = trackedFixture(t);
   const first = run(root, "package-openai.mjs");

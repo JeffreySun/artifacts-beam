@@ -2,6 +2,8 @@
 
 # Artifacts Beam
 
+**By VertiWorks Labs** (service operator: VertiWorks Labs LLC).
+
 **Your coding agent just built you an HTML page. Now get it reviewed — without deploying anything.**
 
 Publish local HTML straight from your agent, get a link anyone can open, and pull their
@@ -9,7 +11,7 @@ comments back into the chat so your agent can act on them.
 
 [![CI](https://github.com/JeffreySun/artifacts-beam/actions/workflows/ci.yml/badge.svg)](https://github.com/JeffreySun/artifacts-beam/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Agents](https://img.shields.io/badge/agents-Copilot%20CLI%20%7C%20Claude%20Code%20%7C%20Codex-6f42c1)](#install)
+[![Agents](https://img.shields.io/badge/agents-Copilot%20CLI%20%7C%20Claude%20Code%20%7C%20Codex-0866c6)](#install)
 
 [**artibeam.ai**](https://artibeam.ai) · [Install](#install) · [What you can say](#what-you-can-say) · [How it works](#how-it-works)
 
@@ -45,19 +47,20 @@ you  ▸ apply those and publish a new version
      ✓ Fixed all 3 · Published version 4 · Replied to each comment
 ```
 
-Your reviewers **don't install anything, don't sign up, and don't need an account.** They
-click a link and type. That's the whole loop.
+**Viewing a share link needs no account or installation. Reviewers sign in to leave
+comments.** Workspace access and sharing policies still apply.
 
 ## Why people like it
 
 | | |
 |---|---|
 | 🔗 **Links, not deployments** | One command turns a local `.html` into a URL. No server, no branch, no build. |
-| 👥 **Reviewers need nothing** | No account, no install, no sign-up. A browser is the only requirement. |
+| 👥 **Easy to review** | Open share links anonymously; sign in to comment. No reviewer plugin installation. |
 | 🔒 **You stay in control** | Links are revocable, and can carry an expiry date and a passcode. |
 | 💬 **Comments come to you** | Your agent reads the feedback and edits the HTML — you never re-type a review. |
 | 🕒 **Versions are automatic** | Re-publishing the same file makes v2, v3, v4… with full history. |
 | 🤖 **Works in three agents** | One skill for Copilot CLI, Claude Code, and Codex. |
+| **Workspace-aware updates** | Choose the destination, target an existing artifact, and refuse stale review-based updates. |
 
 ## Install
 
@@ -75,7 +78,7 @@ copilot plugin install artifacts-beam@artibeam
 /plugin install artifacts-beam@artibeam
 ```
 
-### OpenAI Codex
+### OpenAI Codex / ChatGPT desktop
 
 ```shell
 codex plugin marketplace add JeffreySun/artifacts-beam
@@ -84,15 +87,17 @@ codex plugin add artifacts-beam@artibeam
 
 Adding the marketplace only makes the plugin *available* — the second command installs it.
 You can also enable it from the **ChatGPT desktop app → Plugins**.
+This plugin runs a local Node.js helper. The OpenAI directory package is
+**desktop-only**, not a ChatGPT web integration.
 
 > `artifacts-beam` is the plugin; `artibeam` is the marketplace it ships in — hence
 > `artifacts-beam@artibeam`.
 
 ### First run
 
-Just say *"log in to artifacts beam"*. Your browser opens, you sign in with a personal
+Just say *"log in to artifacts beam"*. Your browser opens, you sign in with an enabled
 **Microsoft**, **Google**, or **Apple** account, and you're done — nothing to copy, nothing to
-paste. Takes about fifteen seconds, and it renews itself from then on.
+paste. The device credential refreshes automatically.
 
 Working over SSH or in a container? It switches automatically to a short code you approve on
 any device with a browser.
@@ -111,6 +116,13 @@ The skill triggers on intent — no commands to memorise:
 - *"apply the review feedback and publish a new version"*
 - *"reply to that comment and mark it resolved"*
 - *"make this artifact public"* · *"tag it dashboard, q3"* · *"revoke that link"*
+- *"switch to my team's workspace"* · *"pin this share link to version 3"*
+- *"compare versions 3 and 4"* · *"include the annotations in the review"*
+
+An upload is not the same as making a public live page. Legacy `public` visibility
+means **unlisted/link access**, not a global gallery. Private drafts, materials,
+formal review requests, live-page publication, administration, and billing remain
+application-managed; the helper does not invoke metered server AI.
 
 ## How it works
 
@@ -125,6 +137,7 @@ plugins/artifacts-beam/
 ├── plugin.json                     # Copilot CLI manifest
 ├── .claude-plugin/plugin.json      # Claude Code manifest
 ├── .codex-plugin/plugin.json       # Codex manifest
+├── assets/icon.svg                # first-party listing/composer icon
 └── skills/artifacts-beam/          # the ONE shared skill
     ├── SKILL.md                    # instructions + trigger phrases
     ├── scripts/abeam.mjs           # portable Node helper
@@ -140,9 +153,10 @@ Three marketplace files expose that single plugin folder — `.github/plugin/` (
 
 ```
 Auth        login [--provider microsoft|google|apple] [--device] · logout · whoami
-Artifacts   publish · list · get · versions · content · open
+Workspace   workspaces · workspace-use
+Artifacts   publish [--spec id | --new] [--review-packet json] · list · get · versions · diff · content · open
 Share links share-create · share-list · share-revoke
-Review      comments · reply · comment-state
+Review      review-packet · comments · annotations · reply · comment-state
 Privacy     privacy-get · privacy-set · tags-get · tags-set · tags-all
 Other       dashboard · delete · delete-version · config
 ```
@@ -167,22 +181,33 @@ scoped to view-only, given an expiry, or locked behind a passcode.
 
 ```shell
 node scripts/validate-plugins.mjs                    # packaging gate (CI)
-node --test plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.test.mjs   # helper unit tests
+node --test scripts/*.test.mjs plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.test.mjs
+node scripts/package-openai.mjs                      # local upload ZIP; requires Git and zip
 ```
 
 `validate-plugins.mjs` is the CI gate. It checks that all three manifests agree on name and
-version, that every marketplace entry resolves to the plugin folder, that the skill frontmatter
-is intact, and that the Codex-specific contract holds — `.codex-plugin/plugin.json` carries the
-required `author` and `interface` blocks, and `agents/openai.yaml` keeps `short_description`
-inside the 25–64 character limit with a `default_prompt` that names `$artifacts-beam`.
+version, publisher metadata stays **VertiWorks Labs**, marketplace versions/paths
+agree, and the skill metadata and Codex desktop-only declaration remain intact.
+It also checks current public-listing text limits and bundled icon paths.
+`agents/openai.yaml` keeps its separate 25-64 character skill-description limit.
 
-Those Codex rules mirror OpenAI's own
-[`validate_plugin.py`](https://github.com/openai/codex/blob/main/codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py),
-so drift is caught here rather than at install time. To check against the real thing:
+The packager generates a portable OpenAI manifest in
+`dist/artifacts-beam-openai-<version>.zip`; it does not replace the Copilot source
+manifest. Only tracked skill files, listing assets, and the original license are
+included. CI retains the ZIP as the `artifacts-beam-openai` artifact.
 
-```shell
-python3 validate_plugin.py plugins/artifacts-beam
-```
+## OpenAI directory publication
+
+Repository-marketplace installation is **not** an approved public directory
+listing. This change prepares a skills-only, desktop-only upload package; it does
+not upload, submit, or publish it.
+
+Publication must use the **VertiWorks Labs business-verified developer identity**
+in the correct OpenAI organization/project, never a personal developer identity.
+The personal GitHub repository location does not set the directory publisher.
+See the [OpenAI publishing guide](docs/openai-publishing.md) for ownership checks,
+build/download instructions, clean-install scenarios, and the remaining portal
+review/publication steps.
 
 > One deliberate inconsistency: `agents/openai.yaml` uses snake_case (`display_name`) while the
 > `interface` block in `.codex-plugin/plugin.json` uses camelCase (`displayName`). Both are
