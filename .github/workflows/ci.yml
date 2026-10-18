@@ -30,10 +30,17 @@ jobs:
         run: node scripts/validate-plugins.mjs
       - name: Syntax-check the helper and its modules
         run: |
-          for f in plugins/artifacts-beam/skills/artifacts-beam/scripts/abeam.mjs \
+          for f in scripts/*.mjs \
+                   plugins/artifacts-beam/skills/artifacts-beam/scripts/abeam.mjs \
                    plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.mjs; do
             node --check "$f"
           done
-      - name: Unit tests (auth modules)
-        working-directory: plugins/artifacts-beam/skills/artifacts-beam
-        run: node --test scripts/lib/*.test.mjs
+      - name: Unit tests (helper contracts and packaging)
+        run: node --test scripts/*.test.mjs plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.test.mjs
+      - name: Build OpenAI upload package
+        run: node scripts/package-openai.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-beam-openai
+          path: dist/artifacts-beam-openai-*.zip
+          if-no-files-found: error
