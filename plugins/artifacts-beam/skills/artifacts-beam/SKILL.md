@@ -3,8 +3,8 @@ name: artifacts-beam
 description: "Use when users want to publish or version HTML on Artifacts Beam (artibeam.ai), choose a workspace, create or revoke share links, retrieve comments or annotations, apply review feedback, compare versions, or manage artifact visibility and tags. Also use for Artifacts Beam sign-in and workspace context. Not for unrelated local HTML editing."
 license: MIT
 metadata:
-  author: Jeffrey Sun
-  version: "0.2.0"
+  author: VertiWorks Labs
+  version: "0.2.1"
   helper: scripts/abeam.mjs
   service: https://artibeam.ai
 ---

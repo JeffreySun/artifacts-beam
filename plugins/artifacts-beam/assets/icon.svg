@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 224" role="img" aria-labelledby="title desc">
+  <title id="title">Artifacts Beam icon</title>
+  <desc id="desc">A command-line prompt beaming a bright spark of an idea, on a blue-to-violet tile.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="224" y2="224" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1273d4" />
+      <stop offset="0.55" stop-color="#0f6cbd" />
+      <stop offset="1" stop-color="#5c2d91" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0.3" cy="0.24" r="0.9">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22" />
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="beam" x1="116" y1="150" x2="168" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd86b" stop-opacity="0.15" />
+      <stop offset="1" stop-color="#ffb900" stop-opacity="0.9" />
+    </linearGradient>
+    <linearGradient id="spark" x1="138" y1="32" x2="190" y2="96" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff3c4" />
+      <stop offset="0.55" stop-color="#ffc233" />
+      <stop offset="1" stop-color="#f7630c" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="224" height="224" rx="52" fill="url(#bg)" />
+  <rect x="0" y="0" width="224" height="224" rx="52" fill="url(#glow)" />
+  <path d="M120 150 L164 64" stroke="url(#beam)" stroke-width="22" stroke-linecap="round" opacity="0.5" />
+  <path d="M122 148 L160 72" stroke="url(#beam)" stroke-width="9" stroke-linecap="round" />
+  <path d="M58 80 L98 116 L58 152" fill="none" stroke="#ffffff" stroke-width="18"
+        stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M114 152 L150 152" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" opacity="0.95" />
+  <path d="M164 30 Q164 64 198 64 Q164 64 164 98 Q164 64 130 64 Q164 64 164 30 Z" fill="url(#spark)" />
+  <path d="M134 118 Q134 129 145 129 Q134 129 134 140 Q134 129 123 129 Q134 129 134 118 Z" fill="#ffd86b" opacity="0.92" />
+  <circle cx="150" cy="98" r="4.5" fill="#fff3c4" opacity="0.9" />
+</svg>

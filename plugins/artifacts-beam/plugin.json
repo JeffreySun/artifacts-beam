@@ -1,13 +1,13 @@
 {
   "name": "artifacts-beam",
-  "description": "Publish local HTML to Artifacts Beam, create revocable share links anyone can open without an account, pull reviewer comments back into your chat, and iterate on the HTML. Sign in through your browser with a personal Microsoft, Google, or Apple account \u2014 nothing to copy or paste.",
-  "version": "0.2.0",
+  "description": "Publish HTML to Artifacts Beam, share revocable review links, collect comments and annotations, and publish versioned updates from your coding agent. Supports workspace selection and browser/device sign-in. Share-link viewing can be anonymous; commenting requires sign-in.",
+  "version": "0.2.1",
   "author": {
-    "name": "Jeffrey Sun",
-    "url": "https://github.com/JeffreySun"
+    "name": "VertiWorks Labs",
+    "url": "https://artibeam.ai"
   },
   "license": "MIT",
-  "homepage": "https://github.com/JeffreySun/artifacts-beam",
+  "homepage": "https://artibeam.ai",
   "repository": "https://github.com/JeffreySun/artifacts-beam",
   "keywords": [
     "artifacts-beam",
