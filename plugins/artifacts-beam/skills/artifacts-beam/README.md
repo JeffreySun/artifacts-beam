@@ -2,7 +2,9 @@
 
 An agent-agnostic skill for **[Artifacts Beam](https://artibeam.ai)** — publish HTML,
 create revocable **share links** anyone can open without an account, pull reviewer
-comments back into the chat, and iterate on the HTML. The same skill backs **GitHub
+comments and annotations back into the chat, and iterate on the HTML against a
+captured published revision. Anonymous viewing does not mean anonymous commenting:
+reviewers sign in to comment. The same skill backs **GitHub
 Copilot CLI**, **Claude Code**, and **OpenAI Codex**.
 
 `login` signs you in through your browser (loopback redirect + PKCE) with a personal
@@ -37,12 +39,12 @@ artifacts-beam/
 
 Windows (PowerShell):
 ```powershell
-./scripts/install-skill.ps1 -Force
+pwsh scripts/install-skill.ps1 -Force
 ```
 
 macOS / Linux:
 ```bash
-FORCE=1 ./scripts/install-skill.sh
+FORCE=1 bash scripts/install-skill.sh
 ```
 
 Both copy the skill to `~/.agents/skills/artifacts-beam`, where the Copilot CLI
@@ -52,18 +54,26 @@ discovers it.
 
 ```bash
 node scripts/abeam.mjs login        # sign in via your browser (see auth-setup.md)
-node scripts/abeam.mjs whoami       # confirm
+node scripts/abeam.mjs whoami       # confirm identity
+node scripts/abeam.mjs workspaces   # check destination workspace
 node scripts/abeam.mjs publish ./mockup.html --open
 node scripts/abeam.mjs share-create <specId> --permission comment --expires-days 7
 node scripts/abeam.mjs help         # full command list
 ```
 
+Use `publish <file> --spec <id>` to update an existing artifact even if the local
+filename changed. For review-driven updates, save `review-packet <id> --state open
+--out review.json` and publish with `--spec <id> --review-packet review.json`; a
+concurrent publication is refused instead of silently appending stale changes.
+The helper also supports pinned share versions, canonical workspace visibility,
+raw annotations, and version diffs. See [the API map](references/api-reference.md).
+
 ## Portability (Codex / Claude)
 
 The helper (`scripts/abeam.mjs`) is intentionally **agent-agnostic and
 dependency-free**, so the equivalent Codex and Claude skills can reuse it verbatim —
-only the `SKILL.md` wrapper (trigger phrasing and tool-call conventions) changes per
-agent. Keep new product behavior in `abeam.mjs` so all three skills stay in sync.
+only the plugin manifests change per agent. OpenAI distribution requires desktop
+local execution; this is not a ChatGPT web or remote MCP integration.
 
 ## Security
 

@@ -4,7 +4,7 @@
 node scripts/abeam.mjs login
 ```
 
-Your browser opens, you sign in with your **Microsoft**, **Google**, or **Apple** account, and
+Your browser opens, you sign in with an enabled **Microsoft**, **Google**, or **Apple** provider, and
 the terminal is signed in. There is nothing to copy and nothing to paste.
 
 ```
@@ -94,6 +94,23 @@ ARTIFACTSBEAM_SITE=http://localhost:5001 node scripts/abeam.mjs whoami   # or pe
 
 Credentials are stored per site, so you can stay signed in to production and to a local dev
 server at the same time.
+
+## Workspace context
+
+```bash
+node scripts/abeam.mjs workspaces
+node scripts/abeam.mjs workspace-use <orgId>
+```
+
+The first command returns the active workspace and memberships. The second uses
+`POST /api/mobile/active-org` to update the device token and its refresh context;
+it does not switch your browser session. Confirm the destination before uploading
+new HTML: filename-based version grouping is scoped to the owner and workspace.
+Membership, grants, quotas, and organization sharing rules still apply.
+
+This user sign-in is unrelated to the **VertiWorks Labs** business developer
+identity used to publish the plugin in OpenAI's directory. Never ask an end user
+to join the publisher's OpenAI organization to use the service.
 
 ## Troubleshooting
 
