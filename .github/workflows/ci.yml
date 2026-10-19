@@ -34,9 +34,25 @@ jobs:
         working-directory: plugins/artifacts-beam/skills/artifacts-beam
         run: node --test
 
+  marketplaces:
+    name: Native Claude and Copilot marketplaces
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned maintainer validators
+        run: |
+          npm install --prefix "$RUNNER_TEMP/marketplace-clis" --no-save --no-package-lock --no-audit --no-fund \
+            @anthropic-ai/claude-code@2.1.296 @github/copilot@1.0.98
+          echo "$RUNNER_TEMP/marketplace-clis/node_modules/.bin" >> "$GITHUB_PATH"
+      - name: Validate and install the candidate in isolated profiles
+        run: node scripts/validate-marketplaces.mjs
+
   validate:
     name: Validate plugin manifests
-    needs: runtime
+    needs: [runtime, marketplaces]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
