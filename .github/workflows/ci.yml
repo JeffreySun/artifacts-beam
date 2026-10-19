@@ -18,8 +18,25 @@ permissions:
   contents: read
 
 jobs:
+  runtime:
+    name: Runtime (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Helper and authentication tests
+        working-directory: plugins/artifacts-beam/skills/artifacts-beam
+        run: node --test
+
   validate:
     name: Validate plugin manifests
+    needs: runtime
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,8 +52,8 @@ jobs:
                    plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.mjs; do
             node --check "$f"
           done
-      - name: Unit tests (helper contracts and packaging)
-        run: node --test scripts/*.test.mjs plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.test.mjs
+      - name: Packaging tests
+        run: node --test scripts/openai-package.test.mjs
       - name: Build OpenAI upload package
         run: node scripts/package-openai.mjs
       - uses: actions/upload-artifact@v4

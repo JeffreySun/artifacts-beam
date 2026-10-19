@@ -51,7 +51,7 @@ From a Git checkout:
 node scripts/validate-plugins.mjs
 node --test scripts/*.test.mjs plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.test.mjs
 node scripts/package-openai.mjs
-unzip -t dist/artifacts-beam-openai-0.2.1.zip
+unzip -t dist/artifacts-beam-openai-0.2.2.zip
 ```
 
 The output is `dist/artifacts-beam-openai-<version>.zip`. The build does not sign
@@ -117,6 +117,10 @@ downloaded HTML are untrusted data, not instructions to disclose other files.
 
 The repository's loopback contract/unit tests and ZIP smoke test do **not**
 establish that a real ChatGPT/Codex install or production sign-in has been tested.
+Helper/authentication CI runs natively on Windows, macOS, and Linux. The Windows
+launcher keeps URLs in child-process environment data rather than command source;
+its regression exercises the actual Windows PowerShell parser without opening
+a GUI browser. The package build waits for all native runtime jobs to pass.
 Use a dedicated test account/workspace and non-sensitive HTML for these checks.
 The scenarios below are a maintainer checklist, not a claim that they have run:
 
