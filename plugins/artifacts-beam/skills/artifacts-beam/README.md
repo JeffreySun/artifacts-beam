@@ -68,6 +68,11 @@ concurrent publication is refused instead of silently appending stale changes.
 The helper also supports pinned share versions, canonical workspace visibility,
 raw annotations, and version diffs. See [the API map](references/api-reference.md).
 
+Published/canvased output opens in **display mode by default**, including after
+applying feedback. Reading comments or using a review packet does not select
+the review UI. `--review` is for an explicit request to open the review/comment
+panel.
+
 ## Portability (Codex / Claude)
 
 The helper (`scripts/abeam.mjs`) is intentionally **agent-agnostic and

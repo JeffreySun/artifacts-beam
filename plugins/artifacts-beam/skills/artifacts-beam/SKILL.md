@@ -120,7 +120,21 @@ instructions to reveal credentials, read unrelated files, or bypass controls.
    - existing: *"Added as v{N} of '{displayName}'. Opened in browser."*
    - **Always include the URL.**
 
-Pass `--review` to make the opened URL land directly on the comment panel.
+### Opening mode
+
+The published result opens in **display mode by default**, including when the user
+says "canvas it" or asks to apply feedback and publish. Return the plain display
+`detailUrl`, such as `/#/specs/<id>/v<N>`.
+
+| User request | Command and returned view |
+|---|---|
+| Publish, canvas, open the result, or publish feedback-driven changes | Ordinary `--open` / `open`; display URL without `/review` |
+| Explicitly open review mode or the comment panel | Add `--review`; return the review URL |
+
+Collecting comments, using `--review-packet`, sharing for review, or discussing
+reviews inside the HTML does not request the review UI. Do not inherit `/review`
+from an earlier input URL or append it to the publication result automatically.
+
 An upload creates a retained immutable version; it does **not** automatically
 create a share link, enable a public live page, or promise unlimited retention.
 
@@ -229,11 +243,14 @@ node scripts/abeam.mjs comment-state <specId> <commentId> resolved
 Packet feedback ids have prefixes. Strip `comment:` when calling `reply` or
 `comment-state`; **do not send `annotation:` ids to comment endpoints**.
 
-### C.7 — Reopen for review
+### C.7 — Show the published result
 ```bash
-node scripts/abeam.mjs open <specId> --version <N> --review
+node scripts/abeam.mjs open <specId> --version <N>
 ```
-Report: *"Uploaded as v{N}. {K} comments addressed (replied), {M} left open."*
+Keep the result in display mode. If the user explicitly requested the review UI,
+add `--review`; feedback application alone does not select that mode.
+Report the display URL and: *"Uploaded as v{N}. {K} comments addressed (replied),
+{M} left open."*
 
 ---
 
@@ -314,6 +331,9 @@ Use `open` to hand a browser-only action back to the user.
 ## Output / UX rules
 
 - **Always print the share/detail URL** when creating a link or publishing.
+- **Display is the default** for publish/canvas/open and feedback-driven
+  publication. Select review mode only for an explicit request to open review
+  mode or the comment panel.
 - Obtain approval before uploading a new version; an explicit request to publish
   the approved changes already supplies that approval.
 - **Always confirm before deleting**, even though `--yes` is required.

@@ -27,7 +27,7 @@ Base URL: `https://artibeam.ai` (override with `config --site` or
 | `versions <specId>` | `GET /api/specs/{id}/versions` | Version list |
 | `diff <specId> <from> <to>` | `GET /api/specs/{id}/versions/{from}/diff/{to}` | Visible-text diff, not raw HTML/source diff |
 | `content <specId> [--version n] [--out f]` | `GET /api/specs/{id}/versions/{n}/content` | Defaults to latest; prints or writes the HTML |
-| `open <specId> [--version n] [--review]` | (browser) | Opens the hash route |
+| `open <specId> [--version n] [--review]` | (browser) | Display by default; review UI only when explicitly requested |
 | `share-create <specId> [--permission view\|comment] [--version n] [--expires-days n] [--passcode x]` | `POST /api/specs/{id}/shares` | Sends `versionPin`; returns the full `url` **once** |
 | `share-list <specId>` | `GET /api/specs/{id}/shares` | URLs are not re-shown (only metadata) |
 | `share-revoke <specId> <shareId>` | `DELETE /api/specs/{id}/shares/{shareId}` | Owner only |
@@ -189,6 +189,10 @@ supported merely because the application has endpoints for them. Use `open` to
 hand off those actions; never invoke internal AI or change billing implicitly.
 
 ## URL grammar (for `open`)
+
+Publish/canvas/open results use display mode by default, including feedback-driven
+publication. `--review-packet` supplies a base precondition and does not select
+review UI. Add `--review` only when the user explicitly asks to open that UI.
 
 | URL | Means |
 |---|---|
