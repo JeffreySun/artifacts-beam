@@ -195,3 +195,7 @@ metadata does not change copyright history.
   includes only tracked skill/assets files and the original license.
   It never submits or publishes. Follow the
   [company-owned OpenAI submission guide](https://github.com/JeffreySun/artifacts-beam/blob/main/docs/openai-publishing.md).
+- **Claude/Copilot listings:** source marketplace installation is not curated
+  approval. Follow the
+  [vendor publishing guide](https://github.com/JeffreySun/artifacts-beam/blob/main/docs/claude-copilot-publishing.md)
+  for the Claude directory portal and Awesome Copilot external issue route.
