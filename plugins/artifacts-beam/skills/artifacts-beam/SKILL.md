@@ -4,7 +4,7 @@ description: "Use when users want to publish or version HTML on Artifacts Beam (
 license: MIT
 metadata:
   author: VertiWorks Labs
-  version: "0.2.1"
+  version: "0.2.2"
   helper: scripts/abeam.mjs
   service: https://artibeam.ai
 ---

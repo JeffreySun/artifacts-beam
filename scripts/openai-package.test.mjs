@@ -47,7 +47,7 @@ function trackedFixture(t) {
 }
 
 function archivePath(root) {
-  return path.join(root, "dist/artifacts-beam-openai-0.2.1.zip");
+  return path.join(root, "dist/artifacts-beam-openai-0.2.2.zip");
 }
 
 function entries(root) {
@@ -128,7 +128,7 @@ test("the upload ZIP is portable, company-owned, and runnable after extraction",
   const manifest = JSON.parse(manifestEntry.stdout);
   assert.equal(manifest.$schema, "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json");
   assert.equal(manifest.name, "artifacts-beam");
-  assert.equal(manifest.version, "0.2.1");
+  assert.equal(manifest.version, "0.2.2");
   assert.equal(manifest.author.name, "VertiWorks Labs");
   assert.equal(manifest.extensions["com.openai"].interface.developerName, "VertiWorks Labs");
   assert.equal(manifest.extensions["com.openai"].requires_local_executor, true);
@@ -201,7 +201,7 @@ test("tracked symlinks fail without leaking data or replacing the last good ZIP"
   assert.equal(result.status, 1);
   assert.match(result.stderr, /symlink|regular file/i);
   assert.deepEqual(fs.readFileSync(archivePath(root)), before);
-  assert.deepEqual(fs.readdirSync(path.join(root, "dist")), ["artifacts-beam-openai-0.2.1.zip"]);
+  assert.deepEqual(fs.readdirSync(path.join(root, "dist")), ["artifacts-beam-openai-0.2.2.zip"]);
 });
 
 test("publisher validation cannot be bypassed by calling the packager directly", (t) => {

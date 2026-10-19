@@ -193,7 +193,16 @@ function detailUrl(specId, version, review) {
 function openBrowser(url) {
   const p = process.platform;
   if (p === "win32") {
-    spawn("cmd", ["/c", "start", "", url], { stdio: "ignore", detached: true }).unref();
+    // Keep URL metacharacters out of shell source, including OAuth '&' and '%' values.
+    spawn("powershell.exe", [
+      "-NoLogo", "-NoProfile", "-NonInteractive", "-Command",
+      "Start-Process -FilePath $env:ARTIFACTSBEAM_BROWSER_URL",
+    ], {
+      stdio: "ignore",
+      detached: true,
+      windowsHide: true,
+      env: { ...process.env, ARTIFACTSBEAM_BROWSER_URL: url },
+    }).unref();
   } else if (p === "darwin") {
     spawn("open", [url], { stdio: "ignore", detached: true }).unref();
   } else {

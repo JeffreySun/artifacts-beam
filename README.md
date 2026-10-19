@@ -168,6 +168,11 @@ Other       dashboard · delete · delete-version · config
 - **Node 18+** — for the helper's built-in `fetch`/`FormData`/`Blob`.
 - A browser, once, to sign in — on the same machine, or any other one if you use `--device`.
 
+The runtime supports Windows and macOS. CI runs helper/authentication checks
+natively on Windows, macOS, and Linux. The Windows browser-launch regression
+uses the real PowerShell parser and a loopback sign-in fixture, substituting only
+the GUI browser action; it does not sign in to a real account.
+
 Your access token is stored locally with `0600` permissions and is never committed. It is
 scoped to this device and can be revoked on its own, without touching your browser session.
 
@@ -195,6 +200,8 @@ The packager generates a portable OpenAI manifest in
 `dist/artifacts-beam-openai-<version>.zip`; it does not replace the Copilot source
 manifest. Only tracked skill files, listing assets, and the original license are
 included. CI retains the ZIP as the `artifacts-beam-openai` artifact.
+Packaging runs on Ubuntu after all three native runtime jobs succeed; Windows
+end users do not need the maintainer's `zip` utility.
 
 ## OpenAI directory publication
 
