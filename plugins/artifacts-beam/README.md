@@ -1,14 +1,17 @@
 # artifacts-beam — multi-agent plugin
 
+Publisher: **VertiWorks Labs**. The public service is operated by VertiWorks Labs LLC.
+
 This is a **single, self-contained plugin folder** that installs the `artifacts-beam`
 skill into three coding agents — **GitHub Copilot CLI**, **Claude Code**, and **OpenAI
-Codex** — from one source of truth. There is exactly one copy of the skill; each agent
+Codex / ChatGPT desktop** — from one source of truth. There is exactly one copy of the skill; each agent
 reads its own manifest and they all load the same `skills/artifacts-beam/`.
 
 The skill lets you publish local HTML to **Artifacts Beam**, create revocable **share
 links** anyone can open without an account, pull reviewer comments back into your chat,
-and iterate on the HTML. You sign in once through your browser with a personal
-Microsoft, Google, or Apple account. See
+and iterate on the HTML. You sign in once through your browser with an enabled
+Microsoft, Google, or Apple provider. Anonymous share-link viewing does not imply
+anonymous commenting; reviewers sign in to leave feedback. See
 [`skills/artifacts-beam/SKILL.md`](skills/artifacts-beam/SKILL.md).
 
 ## Layout
@@ -18,6 +21,7 @@ plugins/artifacts-beam/
 ├── plugin.json                     # Copilot CLI manifest
 ├── .claude-plugin/plugin.json      # Claude Code manifest
 ├── .codex-plugin/plugin.json       # Codex manifest
+├── assets/icon.svg                # listing/composer icon
 └── skills/artifacts-beam/          # the ONE shared skill
     ├── SKILL.md                    # instructions + triggers (the implicit-trigger source)
     ├── scripts/abeam.mjs           # portable, zero-dependency Node helper
@@ -81,6 +85,8 @@ codex plugin add artifacts-beam@artibeam
 Adding the marketplace only makes the plugin *available*; the second command installs it.
 You can also install/enable it from the **ChatGPT desktop app → Plugins**. Codex activates
 the skill implicitly on matching intent, or explicitly via `$artifacts-beam`.
+The helper requires local Node.js execution. Its OpenAI directory package is
+desktop-only and does not provide ChatGPT web support.
 
 For local development you can skip the marketplace entirely — Codex also discovers
 skills dropped into `.agents/skills`:
@@ -95,7 +101,7 @@ bash plugins/artifacts-beam/skills/artifacts-beam/scripts/install-skill.sh
 
 ## One-time sign-in
 
-Your browser opens, you sign in with a personal Microsoft, Google, or Apple account,
+Your browser opens, you sign in with an enabled Microsoft, Google, or Apple provider,
 and the terminal is signed in. Nothing to copy, nothing to paste.
 
 ```shell
@@ -109,6 +115,13 @@ printed or committed. Full walkthrough:
 
 ## For maintainers
 
+- **Publisher identity:** author/owner/developer metadata is `VertiWorks Labs`,
+  while repository URLs remain the real public source location. OpenAI's directory
+  name comes from the selected verified business identity, not JSON alone.
+- **Current artifact contracts:** the shared skill supports bearer-token workspace
+  selection, explicit artifact-id updates, pinned shares, canonical visibility,
+  comments/annotations, visible-text diffs, and model-free review packets.
+  Review-based uploads use a captured base and refuse stale publication.
 - **Single source of truth:** edit the skill only under `skills/artifacts-beam/`. The
   `SKILL.md` `description` is the cross-agent implicit-trigger signal (Codex, Copilot,
   and Claude all match on it), so keep it front-loaded with key functions and triggers.
@@ -116,4 +129,9 @@ printed or committed. Full walkthrough:
   `plugin.json`, `.claude-plugin/plugin.json`, and `.codex-plugin/plugin.json`, and the
   three marketplace `source` paths must resolve to this folder.
 - **Validate before pushing:** `node scripts/validate-plugins.mjs` checks all of the
-  above. It runs in CI (the **Plugin manifests** job) so drift fails the gate.
+  above. It runs in CI (the **Validate plugin manifests** job) so drift fails the gate.
+- **OpenAI ZIP:** run `node scripts/package-openai.mjs` from the repository.
+  It generates a portable root manifest separately from this folder's Copilot
+  manifest and includes only tracked skill/assets files and the original license.
+  It never submits or publishes. Follow the
+  [company-owned submission guide](../../docs/openai-publishing.md).

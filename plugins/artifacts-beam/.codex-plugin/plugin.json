@@ -1,31 +1,38 @@
 {
   "name": "artifacts-beam",
-  "version": "0.2.0",
-  "description": "Publish local HTML to Artifacts Beam, create revocable share links anyone can open without an account, pull reviewer comments back into your chat, and iterate on the HTML. Sign in through your browser with a personal Microsoft, Google, or Apple account — nothing to copy or paste.",
+  "version": "0.2.1",
+  "description": "Publish HTML to Artifacts Beam, share revocable review links, collect comments and annotations, and publish versioned updates from your coding agent. Supports workspace selection and browser/device sign-in. Share-link viewing can be anonymous; commenting requires sign-in.",
   "author": {
-    "name": "Jeffrey Sun",
-    "url": "https://github.com/JeffreySun"
+    "name": "VertiWorks Labs",
+    "url": "https://artibeam.ai"
   },
   "license": "MIT",
-  "homepage": "https://github.com/JeffreySun/artifacts-beam",
+  "homepage": "https://artibeam.ai",
   "repository": "https://github.com/JeffreySun/artifacts-beam",
   "keywords": ["artifacts-beam", "html", "review", "share-links", "comments", "mockup"],
   "skills": "./skills/",
+  "requires_local_executor": true,
   "interface": {
     "displayName": "Artifacts Beam",
-    "shortDescription": "Publish HTML and share it for review",
-    "longDescription": "Turn a local HTML file into a link your team can open and comment on — no deploy, no branch, no build. Share links are revocable and can carry an expiry or a passcode, and reviewers need no account, no install, and no sign-up. Comments come back into your chat so your agent can apply them and publish a new version. Re-publishing the same file versions it automatically.",
-    "developerName": "Jeffrey Sun",
+    "shortDescription": "Publish HTML and get feedback",
+    "longDescription": "Publish local HTML in your chosen Artifacts Beam workspace, create revocable share links, and bring comments and annotations back into your coding agent. Viewing share links can be anonymous; commenting requires sign-in. Update an explicit artifact, compare versions, or apply feedback against a captured published revision without silently appending stale changes. Workspace access, sharing policies, quotas, and retention still apply. Requires desktop execution with Node.js 18+.",
+    "developerName": "VertiWorks Labs",
     "category": "Productivity",
     "capabilities": [
-      "Publish local HTML and auto-version it on re-publish",
-      "Create revocable share links with optional expiry and passcode",
-      "Read reviewer comments and reply or resolve them",
-      "Apply review feedback to the HTML and publish a new version",
-      "Manage artifact privacy, tags, and versions"
+      "Select the active workspace and publish local HTML",
+      "Create revocable, optionally version-pinned share links",
+      "Read review packets, comments, and annotations",
+      "Publish feedback-driven updates with a stale-base precondition",
+      "Reply to comments and resolve explicitly approved threads",
+      "Compare versions and manage visibility and tags"
     ],
     "defaultPrompt": "Use $artifacts-beam to publish this HTML and give me a link my team can comment on.",
     "websiteURL": "https://artibeam.ai",
-    "brandColor": "#6F42C1"
+    "supportURL": "https://github.com/JeffreySun/artifacts-beam/issues",
+    "privacyPolicyURL": "https://artibeam.ai/privacy",
+    "termsOfServiceURL": "https://artibeam.ai/terms",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "brandColor": "#0866C6"
   }
 }

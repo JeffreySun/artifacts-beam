@@ -24,6 +24,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import {
   loadCredentials,
   saveCredentials,
@@ -140,7 +141,7 @@ async function apiJson(pathname, opts = {}) {
       fail(NOT_SIGNED_IN);
     }
     if (res.status === 403) {
-      fail(`Forbidden (HTTP 403): ${msg}. You may not be the owner of this artifact.`);
+      fail(`Forbidden (HTTP 403): ${msg}. Check artifact access, workspace membership, and sharing policy.`);
     }
     fail(`Request failed (HTTP ${res.status}): ${msg}`);
   }
@@ -222,11 +223,47 @@ function parseArgs(argv) {
   return { positionals, flags };
 }
 
-function uploadFormData(filePath) {
+function stringOption(flags, key) {
+  const value = flags[key];
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !value.trim()) fail(`--${key} requires a value.`);
+  return value;
+}
+
+function positiveInteger(value, label) {
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number < 1) fail(`${label} must be a positive integer.`);
+  return number;
+}
+
+function integerOption(flags, key) {
+  const value = stringOption(flags, key);
+  return value === undefined ? undefined : positiveInteger(value, `--${key}`);
+}
+
+function uploadFormData(filePath, fields = {}) {
   const buf = fs.readFileSync(filePath);
   const fd = new FormData();
   fd.append("file", new Blob([buf], { type: "text/html" }), path.basename(filePath));
+  for (const [name, value] of Object.entries(fields)) fd.append(name, value);
   return fd;
+}
+
+function publicationBase(file, specId) {
+  let packet;
+  try {
+    packet = JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (e) {
+    fail(`Could not read review packet: ${e.message}`);
+  }
+  const base = packet?.baseRevision;
+  if (packet?.contractVersion !== 1 || packet.artifactId !== specId || base?.entityId !== specId
+      || !Number.isSafeInteger(base.publishedVersion) || base.publishedVersion < 1
+      || base.draftETag !== null || !/^[0-9a-f]{64}$/.test(base.revisionId || "")
+      || !/^[0-9a-f]{64}$/.test(base.contentSha256 || "")) {
+    fail("Review packet must contain a valid published base revision for the selected artifact.");
+  }
+  return base;
 }
 
 // ─── commands ──────────────────────────────────────────────────────────────────
@@ -322,27 +359,63 @@ const commands = {
     print({ authenticated: true, email: me.email, alias: me.alias, fullName: me.fullName });
   },
 
-  // publish <file> [--open] [--review]
-  async publish(pos, flags) {
-    const file = pos[0];
-    if (!file) fail("Usage: publish <file.html> [--open] [--review]");
-    if (!fs.existsSync(file)) fail(`File not found: ${file}`);
-    if (!/\.(html?|htm)$/i.test(file)) fail("Only .html/.htm files can be published.");
+  async workspaces() {
+    print(await apiJson("/api/orgs"));
+  },
 
-    const res = await api("/api/specs", {
+  async "workspace-use"(pos) {
+    if (!pos[0]) fail("Usage: workspace-use <orgId>");
+    print(await apiJson("/api/mobile/active-org", {
       method: "POST",
-      body: uploadFormData(file),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orgId: pos[0] }),
+    }));
+  },
+
+  async publish(pos, flags) {
+    for (const key of Object.keys(flags)) {
+      if (!["spec", "new", "review-packet", "operation-id", "open", "review"].includes(key))
+        fail(`Unknown publication option --${key}. Run: node abeam.mjs help`);
+    }
+    const file = pos[0];
+    if (!file) fail("Usage: publish <file.html> [--spec <id> | --new] [--review-packet <json>] [--operation-id <key>] [--open] [--review]");
+    if (!fs.existsSync(file)) fail(`File not found: ${file}`);
+    if (!/\.html$/i.test(file)) fail("Only .html files can be published.");
+    const specId = stringOption(flags, "spec");
+    const packetFile = stringOption(flags, "review-packet");
+    if (flags.new !== undefined && flags.new !== true) fail("--new does not take a value.");
+    if (flags.new && specId) fail("--new and --spec cannot be combined.");
+    if (packetFile && !specId) fail("--review-packet requires --spec to select the artifact.");
+    const fields = {};
+    if (flags.new) fields.forceNewSpec = "true";
+    if (packetFile) {
+      fields.submissionMode = "replaceIfCurrent";
+      fields.expectedBaseRevision = JSON.stringify(publicationBase(packetFile, specId));
+    }
+    const operationId = stringOption(flags, "operation-id") || randomUUID();
+    if (operationId.length > 128 || /[^\x21-\x7e]|,/.test(operationId))
+      fail("--operation-id must be 1-128 printable ASCII characters without spaces or commas.");
+
+    const endpoint = specId ? `/api/specs/${encodeURIComponent(specId)}/versions` : "/api/specs";
+    console.error(`Publication operation: ${operationId}`);
+    const res = await api(endpoint, {
+      method: "POST",
+      headers: { "Idempotency-Key": operationId },
+      body: uploadFormData(file, fields),
     });
     failIfUnauthorized(res);
     const body = await readBody(res);
     if (!res.ok) {
       const msg = (body && body.error) || `HTTP ${res.status}`;
-      fail(`Upload failed: ${msg}`);
+      fail(`Upload failed (HTTP ${res.status}): ${msg}`);
     }
-    const specId = body.spec && body.spec.specId;
-    const version = body.version && body.version.versionNumber;
-    const url = detailUrl(specId, version, flags.review);
+    const publishedId = body?.spec?.specId;
+    const version = body?.version?.versionNumber;
+    if (!publishedId || !Number.isSafeInteger(version) || version < 1)
+      fail("Upload returned an invalid publication response.");
+    const url = detailUrl(publishedId, version, flags.review);
     body.detailUrl = url;
+    body.operationId = operationId;
     print(body);
     if (body.wasExistingSpec) {
       ok(`Added as v${version} of "${body.spec.displayName}".`);
@@ -372,6 +445,13 @@ const commands = {
   async versions(pos) {
     if (!pos[0]) fail("Usage: versions <specId>");
     print(await apiJson(`/api/specs/${encodeURIComponent(pos[0])}/versions`));
+  },
+
+  async diff(pos) {
+    if (pos.length !== 3) fail("Usage: diff <specId> <fromVersion> <toVersion>");
+    const from = positiveInteger(pos[1], "fromVersion");
+    const to = positiveInteger(pos[2], "toVersion");
+    print(await apiJson(`/api/specs/${encodeURIComponent(pos[0])}/versions/${from}/diff/${to}`));
   },
 
   // content <specId> [--version n] [--out file]
@@ -409,10 +489,49 @@ const commands = {
   // comments <specId> [--filter open|resolved|all]
   async comments(pos, flags) {
     if (!pos[0]) fail("Usage: comments <specId> [--filter open|resolved|all]");
-    const all = await apiJson(`/api/specs/${encodeURIComponent(pos[0])}/comments`);
     const filter = flags.filter || "all";
-    const list = Array.isArray(all) ? all : [];
-    print(filter === "all" ? list : list.filter((c) => c.state === filter));
+    if (!["all", "open", "resolved"].includes(filter)) fail("--filter must be open, resolved, or all.");
+    const all = await apiJson(`/api/specs/${encodeURIComponent(pos[0])}/comments`);
+    if (!Array.isArray(all)) fail("Invalid comments response: expected an array.");
+    print(filter === "all" ? all : all.filter((c) => c.state === filter));
+  },
+
+  async annotations(pos, flags) {
+    if (!pos[0]) fail("Usage: annotations <specId> [--version n]");
+    const version = integerOption(flags, "version");
+    const query = version === undefined ? "" : `?version=${version}`;
+    print(await apiJson(`/api/specs/${encodeURIComponent(pos[0])}/annotations${query}`));
+  },
+
+  async "review-packet"(pos, flags) {
+    if (!pos[0]) fail("Usage: review-packet <specId> [--state open|resolved|all] [--base-version n] [--authored-version n] [--selected comment:id,annotation:id] [--format json|markdown] [--out file]");
+    const state = stringOption(flags, "state") || "all";
+    const format = stringOption(flags, "format") || "json";
+    if (!["all", "open", "resolved"].includes(state)) fail("--state must be open, resolved, or all.");
+    if (!["json", "markdown"].includes(format)) fail("--format must be json or markdown.");
+    const params = new URLSearchParams({ state, format });
+    for (const [flag, key] of [["base-version", "baseVersion"], ["authored-version", "authoredVersion"]]) {
+      const value = integerOption(flags, flag);
+      if (value !== undefined) params.set(key, String(value));
+    }
+    const selected = stringOption(flags, "selected");
+    if (selected !== undefined) {
+      const ids = selected.split(",").map((id) => id.trim());
+      if (ids.some((id) => !/^(comment|annotation):[^\s:,]+$/.test(id))
+          || new Set(ids).size !== ids.length) fail("--selected needs unique comment:<id> or annotation:<id> values.");
+      for (const id of ids) params.append("selected", id);
+    }
+    const output = stringOption(flags, "out");
+    const data = await apiJson(`/api/specs/${encodeURIComponent(pos[0])}/review-packet?${params}`);
+    if (format === "json" && (!data || data.contractVersion !== 1 || data.artifactId !== pos[0]))
+      fail("Invalid review packet response.");
+    if (format === "markdown" && typeof data !== "string") fail("Invalid Markdown review packet response.");
+    if (output) {
+      fs.writeFileSync(output, typeof data === "string" ? data : JSON.stringify(data, null, 2) + "\n");
+      ok(`Wrote review packet to ${output}.`);
+    } else {
+      print(data);
+    }
   },
 
   // reply <specId> <commentId> <text...>
@@ -445,11 +564,16 @@ const commands = {
   // ── share links (the consumer headline feature) ────────────────────────────
   // share-create <specId> [--permission view|comment] [--expires-days n] [--passcode x]
   async "share-create"(pos, flags) {
-    if (!pos[0]) fail("Usage: share-create <specId> [--permission view|comment] [--expires-days n] [--passcode x]");
+    if (!pos[0]) fail("Usage: share-create <specId> [--permission view|comment] [--version n] [--expires-days n] [--passcode x]");
+    const permission = stringOption(flags, "permission") || "view";
+    if (!["view", "comment"].includes(permission)) fail("--permission must be view or comment.");
+    const expiresInDays = integerOption(flags, "expires-days");
+    if (expiresInDays > 3650) fail("--expires-days must not exceed 3650.");
     const payload = {
-      permission: flags.permission === "comment" ? "comment" : "view",
-      passcode: flags.passcode ? String(flags.passcode) : null,
-      expiresInDays: flags["expires-days"] ? Number(flags["expires-days"]) : null,
+      permission,
+      passcode: stringOption(flags, "passcode") ?? null,
+      expiresInDays: expiresInDays ?? null,
+      versionPin: integerOption(flags, "version") ?? null,
     };
     const link = await apiJson(`/api/specs/${encodeURIComponent(pos[0])}/shares`, {
       method: "POST",
@@ -484,18 +608,22 @@ const commands = {
     print(await apiJson(`/api/specs/${encodeURIComponent(pos[0])}/access`));
   },
 
-  // privacy-set <specId> <private|public>
-  async "privacy-set"(pos) {
-    const [specId, mode] = pos;
-    if (!specId || !["private", "public"].includes(mode)) {
-      fail("Usage: privacy-set <specId> <private|public>");
+  async "privacy-set"(pos, flags) {
+    const [specId, requested] = pos;
+    const visibility = requested === "public" ? "link" : requested;
+    if (!specId || !["private", "internal", "restricted", "link"].includes(visibility)) {
+      fail("Usage: privacy-set <specId> <private|internal|restricted|link> [--users email,email]");
     }
+    const users = stringOption(flags, "users");
+    const scopedUsers = users ? users.split(",").map((email) => email.trim()).filter(Boolean) : [];
+    if (visibility === "restricted" && !scopedUsers.length) fail("Restricted visibility requires --users with recipient emails.");
+    if (visibility !== "restricted" && users !== undefined) fail("--users applies only to restricted visibility.");
     print(await apiJson(`/api/specs/${encodeURIComponent(specId)}/access`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode }),
+      body: JSON.stringify({ visibility, scopedUsers }),
     }));
-    ok(`Privacy set to ${mode}.`);
+    ok(`Visibility set to ${visibility}.`);
   },
 
   // ── tags ─────────────────────────────────────────────────────────────────────
@@ -550,27 +678,35 @@ Auth (see references/auth-setup.md):
                                   --device: show a code to enter on another device (SSH, containers)
   logout                          Revoke this device's token + clear local state
   whoami                          Show the signed-in account
+  workspaces                      List memberships and the active workspace
+  workspace-use <orgId>            Switch this device's active workspace
 
 Artifacts:
-  publish <file> [--open] [--review]   Upload (auto-versions by name+owner)
+  publish <file> [--spec <id> | --new] [--review-packet <json>] [--operation-id <key>]
+                [--open] [--review]   Upload in the active workspace; target an id for updates
   list [query] [--tag a,b] [--page n]  List your visible artifacts
   get <specId>                         Spec metadata + versions
   versions <specId>                    Version list
+  diff <specId> <fromVersion> <toVersion>   Compare visible text
   content <specId> [--version n] [--out f]   Download a version's HTML
   open <specId> [--version n] [--review]     Open in the browser
 
 Share links:
-  share-create <specId> [--permission view|comment] [--expires-days n] [--passcode x]
+  share-create <specId> [--permission view|comment] [--version n] [--expires-days n] [--passcode x]
   share-list <specId>
   share-revoke <specId> <shareId>
 
 Review loop:
   comments <specId> [--filter open|resolved|all]
+  annotations <specId> [--version n]
+  review-packet <specId> [--state open|resolved|all] [--base-version n]
+                [--authored-version n] [--selected comment:id,annotation:id]
+                [--format json|markdown] [--out file]
   reply <specId> <commentId> "<text>"
   comment-state <specId> <commentId> <open|resolved>
 
 Privacy & tags:
-  privacy-get <specId> | privacy-set <specId> <private|public>
+  privacy-get <specId> | privacy-set <specId> <private|internal|restricted|link> [--users email,email]
   tags-get <specId> | tags-set <specId> "a,b" | tags-all
 
 Other:

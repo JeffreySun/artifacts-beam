@@ -27,11 +27,16 @@ const PLUGIN_REL = "plugins/artifacts-beam";
 const PLUGIN_DIR = path.join(REPO_ROOT, PLUGIN_REL);
 const SKILL_DIR = path.join(PLUGIN_DIR, "skills", "artifacts-beam");
 const EXPECT_NAME = "artifacts-beam";
+const EXPECT_PUBLISHER = "VertiWorks Labs";
 
 const errors = [];
 const notes = [];
 const fail = (msg) => errors.push(msg);
 const ok = (msg) => notes.push(msg);
+
+function assertPublisher(label, name) {
+  if (name !== EXPECT_PUBLISHER) fail(`${label}: publisher must be "${EXPECT_PUBLISHER}"`);
+}
 
 function readText(rel) {
   const abs = path.isAbsolute(rel) ? rel : path.join(REPO_ROOT, rel);
@@ -87,6 +92,7 @@ for (const [agent, m] of Object.entries(parsed)) {
   else names.add(m.name);
   if (!m.version) fail(`${agent} manifest missing "version"`);
   else versions.add(m.version);
+  assertPublisher(`${agent} manifest author`, m.author?.name);
 }
 if (names.size > 1) fail(`manifest "name" disagrees across agents: ${[...names].join(", ")}`);
 else if (names.size === 1 && !names.has(EXPECT_NAME))
@@ -116,9 +122,14 @@ function validateMarketplacePlugin(label, entry) {
 try {
   const m = readJson(".github/plugin/marketplace.json");
   ok("Copilot marketplace parses ✓");
+  assertPublisher("Copilot marketplace owner", m.owner?.name);
   const entry = (m.plugins || []).find((p) => p.name === EXPECT_NAME);
   validateMarketplacePlugin("Copilot marketplace", entry);
-  if (entry) assertResolvesToPlugin("Copilot marketplace", entry.source);
+  if (entry) {
+    assertResolvesToPlugin("Copilot marketplace", entry.source);
+    if (entry.version !== parsed.Copilot?.version || m.metadata?.version !== parsed.Copilot?.version)
+      fail("Copilot marketplace version must agree with the plugin manifest");
+  }
 } catch (e) {
   fail(e.message);
 }
@@ -129,6 +140,7 @@ try {
   ok("Claude marketplace parses ✓");
   if (!m.name) fail("Claude marketplace missing top-level \"name\"");
   if (!m.owner || !m.owner.name) fail("Claude marketplace missing owner.name");
+  assertPublisher("Claude marketplace owner", m.owner?.name);
   const entry = (m.plugins || []).find((p) => p.name === EXPECT_NAME);
   validateMarketplacePlugin("Claude marketplace", entry);
   if (entry) assertResolvesToPlugin("Claude marketplace", entry.source);
@@ -183,7 +195,12 @@ try {
       else ok(`SKILL.md name: "${EXPECT_NAME}" ✓`);
     }
     if (!descMatch) fail("SKILL.md frontmatter missing \"description\"");
+    else if (descMatch[1].length > 1024) fail("SKILL.md description exceeds 1024 characters");
     else ok(`SKILL.md description present (${descMatch[1].length} chars) ✓`);
+    const author = block.match(/^  author:\s*(.+)$/m)?.[1]?.trim().replace(/^["']|["']$/g, "");
+    assertPublisher("SKILL.md metadata author", author);
+    const version = block.match(/^  version:\s*["']?([^"'\n]+)["']?\s*$/m)?.[1]?.trim();
+    if (version !== parsed.Codex?.version) fail("SKILL.md metadata version must agree with the plugin manifest");
   }
 } catch (e) {
   fail(e.message);
@@ -217,13 +234,13 @@ try {
 }
 
 // ── 6: Codex .codex-plugin/plugin.json interface contract ─────────────────────
-// Mirrors OpenAI's official validate_plugin.py, so drift is caught here rather than
-// at install time. Source: openai/codex codex-rs/skills/src/assets/samples/
-// plugin-creator/scripts/validate_plugin.py
+// Includes current public-submission limits and the desktop-only flag.
+// https://developers.openai.com/plugins/deploy/submission
 try {
   const m = readJson(path.join(PLUGIN_DIR, ".codex-plugin", "plugin.json"));
   const allowed = new Set(["id", "name", "version", "description", "skills", "apps",
-    "mcpServers", "interface", "author", "homepage", "repository", "license", "keywords"]);
+    "mcpServers", "interface", "author", "homepage", "repository", "license", "keywords",
+    "requires_local_executor"]);
   const extra = Object.keys(m).filter((k) => !allowed.has(k));
   if (extra.length) fail(`Codex plugin.json: fields not accepted by Codex: ${extra.join(", ")}`);
 
@@ -232,6 +249,8 @@ try {
 
   if (!m.author || typeof m.author !== "object" || !m.author.name)
     fail("Codex plugin.json: author must be an object with a name");
+  if (m.requires_local_executor !== true)
+    fail("Codex plugin.json: requires_local_executor must be true for the local Node helper");
 
   const iface = m.interface;
   if (!iface || typeof iface !== "object") {
@@ -240,6 +259,25 @@ try {
     for (const f of ["displayName", "shortDescription", "longDescription", "developerName", "category"]) {
       if (typeof iface[f] !== "string" || !iface[f].trim())
         fail(`Codex plugin.json: interface.${f} must be a non-empty string`);
+    }
+    assertPublisher("Codex interface developerName", iface.developerName);
+    for (const [field, limit] of [["displayName", 30], ["shortDescription", 30],
+      ["longDescription", 4000], ["developerName", 80]]) {
+      if (typeof iface[field] === "string" && iface[field].length > limit)
+        fail(`Codex plugin.json: interface.${field} must not exceed ${limit} characters`);
+    }
+    for (const field of ["composerIcon", "logo"]) {
+      const asset = iface[field];
+      if (typeof asset !== "string" || !asset.startsWith("./assets/")
+          || !path.resolve(PLUGIN_DIR, asset).startsWith(PLUGIN_DIR + path.sep)) {
+        fail(`Codex plugin.json: interface.${field} must point inside ./assets/`);
+      } else {
+        const file = path.resolve(PLUGIN_DIR, asset);
+        if (!fs.existsSync(file) || !fs.lstatSync(file).isFile())
+          fail(`Codex plugin.json: interface.${field} asset is missing or not a regular file`);
+        else if (fs.statSync(file).size > 5 * 1024 * 1024)
+          fail(`Codex plugin.json: interface.${field} asset exceeds 5 MiB`);
+      }
     }
     if (!("defaultPrompt" in iface) && !("default_prompt" in iface))
       fail("Codex plugin.json: interface.defaultPrompt is required");
