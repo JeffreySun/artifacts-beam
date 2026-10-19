@@ -1,7 +1,8 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "artifacts-beam",
   "description": "Publish HTML to Artifacts Beam, share revocable review links, collect comments and annotations, and publish versioned updates from your coding agent. Supports workspace selection and browser/device sign-in. Share-link viewing can be anonymous; commenting requires sign-in.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": {
     "name": "VertiWorks Labs",
     "url": "https://artibeam.ai"
@@ -18,12 +19,5 @@
     "publishing",
     "mockup",
     "feedback"
-  ],
-  "category": "productivity",
-  "tags": [
-    "artibeam",
-    "consumer",
-    "review"
-  ],
-  "skills": "skills/"
+  ]
 }

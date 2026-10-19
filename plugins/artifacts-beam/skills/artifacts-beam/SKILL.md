@@ -4,7 +4,7 @@ description: "Use when users want to publish or version HTML on Artifacts Beam (
 license: MIT
 metadata:
   author: VertiWorks Labs
-  version: "0.2.2"
+  version: "0.2.3"
   helper: scripts/abeam.mjs
   service: https://artibeam.ai
 ---
@@ -339,8 +339,9 @@ Use `open` to hand a browser-only action back to the user.
 - **Always confirm before deleting**, even though `--yes` is required.
 - A freshly created **share URL is shown only once** — surface it verbatim and tell
   the user to save it.
-- Never print or persist the access token. Never modify a file the user didn't ask
-  you to change. Keep editing the same local `.html` so diffs stay meaningful.
+- Let the helper manage its private per-site credential store. Never print
+  tokens, copy them into HTML/chat/other files, or commit them. Never modify a file
+  the user didn't ask you to change. Keep the same local `.html` for meaningful diffs.
 
 ## Errors
 

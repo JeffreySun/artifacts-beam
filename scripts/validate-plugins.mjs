@@ -38,6 +38,35 @@ function assertPublisher(label, name) {
   if (name !== EXPECT_PUBLISHER) fail(`${label}: publisher must be "${EXPECT_PUBLISHER}"`);
 }
 
+function assertHttps(label, value) {
+  let url;
+  try {
+    url = typeof value === "string" ? new URL(value) : null;
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    fail(`${label} must be an absolute HTTPS URL without credentials`);
+    return;
+  }
+  if (!url || url.protocol !== "https:" || url.username || url.password)
+    fail(`${label} must be an absolute HTTPS URL without credentials`);
+}
+
+function assertBundledAsset(label, asset) {
+  if (typeof asset !== "string" || !asset.startsWith("./assets/")
+      || !path.resolve(PLUGIN_DIR, asset).startsWith(PLUGIN_DIR + path.sep)) {
+    fail(`${label} must point inside ./assets/`);
+    return;
+  }
+  const file = path.resolve(PLUGIN_DIR, asset);
+  if (!fs.existsSync(file) || !fs.lstatSync(file).isFile()) {
+    fail(`${label} asset is missing or not a regular file`);
+  } else if (!fs.realpathSync(file).startsWith(fs.realpathSync(PLUGIN_DIR) + path.sep)) {
+    fail(`${label} asset must stay inside the plugin`);
+  } else if (fs.statSync(file).size > 5 * 1024 * 1024) {
+    fail(`${label} asset exceeds 5 MiB`);
+  }
+}
+
 function readText(rel) {
   const abs = path.isAbsolute(rel) ? rel : path.join(REPO_ROOT, rel);
   return fs.readFileSync(abs, "utf8");
@@ -101,6 +130,36 @@ else if (names.size === 1) ok(`manifest name agrees: "${EXPECT_NAME}" ✓`);
 if (versions.size > 1) fail(`manifest "version" disagrees across agents: ${[...versions].join(", ")}`);
 else if (versions.size === 1) ok(`manifest version agrees: "${[...versions][0]}" ✓`);
 
+if (parsed.Copilot) {
+  const manifest = parsed.Copilot;
+  if (manifest.$schema !== "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json")
+    fail("Copilot portable manifest $schema must select Agent Plugins 1.0.0");
+  const allowed = new Set(["$schema", "name", "version", "description", "author",
+    "homepage", "repository", "license", "keywords", "extensions"]);
+  const extra = Object.keys(manifest).filter((key) => !allowed.has(key));
+  if (extra.length) fail(`Copilot portable manifest has unsupported fields: ${extra.join(", ")}`);
+}
+
+if (parsed.Claude) {
+  const manifest = parsed.Claude;
+  if (typeof manifest.displayName !== "string" || !manifest.displayName.trim())
+    fail("Claude plugin.json: displayName must be a non-empty string");
+  assertBundledAsset("Claude plugin.json: icon", manifest.icon);
+  for (const field of ["documentationUrl", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl"])
+    assertHttps(`Claude plugin.json: ${field}`, manifest[field]);
+}
+
+try {
+  const license = `${PLUGIN_REL}/LICENSE`;
+  if (!fs.existsSync(path.join(REPO_ROOT, license))) fail("Plugin-local LICENSE is required for distribution");
+  else if (readText(license) !== readText("LICENSE")) fail("Plugin LICENSE must match the original root LICENSE attribution");
+  const prose = readText(`${PLUGIN_REL}/README.md`).replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, "");
+  const words = prose.split(/\s+/).filter((word) => /[a-z0-9]/i.test(word));
+  if (words.length < 40) fail("Plugin README must contain at least 40 prose words outside code blocks");
+} catch (error) {
+  fail(error.message);
+}
+
 // Codex manifest must point `skills` at the bundled skills dir.
 if (parsed.Codex) {
   const skillsField = parsed.Codex.skills;
@@ -140,6 +199,9 @@ try {
   ok("Claude marketplace parses ✓");
   if (!m.name) fail("Claude marketplace missing top-level \"name\"");
   if (!m.owner || !m.owner.name) fail("Claude marketplace missing owner.name");
+  const description = m.description ?? m.metadata?.description;
+  if (typeof description !== "string" || !description.trim()) fail("Claude marketplace missing description");
+  if (m.version !== parsed.Claude?.version) fail("Claude marketplace version must agree with the plugin manifest");
   assertPublisher("Claude marketplace owner", m.owner?.name);
   const entry = (m.plugins || []).find((p) => p.name === EXPECT_NAME);
   validateMarketplacePlugin("Claude marketplace", entry);
@@ -267,17 +329,7 @@ try {
         fail(`Codex plugin.json: interface.${field} must not exceed ${limit} characters`);
     }
     for (const field of ["composerIcon", "logo"]) {
-      const asset = iface[field];
-      if (typeof asset !== "string" || !asset.startsWith("./assets/")
-          || !path.resolve(PLUGIN_DIR, asset).startsWith(PLUGIN_DIR + path.sep)) {
-        fail(`Codex plugin.json: interface.${field} must point inside ./assets/`);
-      } else {
-        const file = path.resolve(PLUGIN_DIR, asset);
-        if (!fs.existsSync(file) || !fs.lstatSync(file).isFile())
-          fail(`Codex plugin.json: interface.${field} asset is missing or not a regular file`);
-        else if (fs.statSync(file).size > 5 * 1024 * 1024)
-          fail(`Codex plugin.json: interface.${field} asset exceeds 5 MiB`);
-      }
+      assertBundledAsset(`Codex plugin.json: interface.${field}`, iface[field]);
     }
     if (!("defaultPrompt" in iface) && !("default_prompt" in iface))
       fail("Codex plugin.json: interface.defaultPrompt is required");

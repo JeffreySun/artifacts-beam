@@ -1,5 +1,7 @@
 {
   "name": "artibeam",
+  "description": "Artifacts Beam plugins by VertiWorks Labs: publish HTML, share it, and bring feedback into your coding agent.",
+  "version": "0.2.3",
   "owner": {
     "name": "VertiWorks Labs"
   },

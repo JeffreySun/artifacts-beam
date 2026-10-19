@@ -51,7 +51,7 @@ From a Git checkout:
 node scripts/validate-plugins.mjs
 node --test scripts/*.test.mjs plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.test.mjs
 node scripts/package-openai.mjs
-unzip -t dist/artifacts-beam-openai-0.2.2.zip
+unzip -t dist/artifacts-beam-openai-0.2.3.zip
 ```
 
 The output is `dist/artifacts-beam-openai-<version>.zip`. The build does not sign

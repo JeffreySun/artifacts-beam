@@ -134,7 +134,7 @@ All three agents share exactly one copy of the skill; only a thin per-agent mani
 
 ```
 plugins/artifacts-beam/
-├── plugin.json                     # Copilot CLI manifest
+├── plugin.json                     # portable Agent Plugins manifest (Copilot)
 ├── .claude-plugin/plugin.json      # Claude Code manifest
 ├── .codex-plugin/plugin.json       # Codex manifest
 ├── assets/icon.svg                # first-party listing/composer icon
@@ -196,10 +196,12 @@ agree, and the skill metadata and Codex desktop-only declaration remain intact.
 It also checks current public-listing text limits and bundled icon paths.
 `agents/openai.yaml` keeps its separate 25-64 character skill-description limit.
 
-The packager generates a portable OpenAI manifest in
+The packager generates an OpenAI-specific portable manifest in
 `dist/artifacts-beam-openai-<version>.zip`; it does not replace the Copilot source
 manifest. Only tracked skill files, listing assets, and the original license are
 included. CI retains the ZIP as the `artifacts-beam-openai` artifact.
+The source root manifest uses Agent Plugins 1.0 metadata; its standard `skills/`
+directory remains the shared skill source for every wrapper.
 Packaging runs on Ubuntu after all three native runtime jobs succeed; Windows
 end users do not need the maintainer's `zip` utility.
 
