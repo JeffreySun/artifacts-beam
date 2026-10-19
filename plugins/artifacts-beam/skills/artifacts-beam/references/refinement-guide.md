@@ -82,7 +82,11 @@ After applying edits and publishing, say something like:
 >   numbers and I'll add it.
 >
 > Replied on each addressed comment and reopened
-> https://artibeam.ai/#/specs/<id>/v4/review for re-review.
+> https://artibeam.ai/#/specs/<id>/v4 in display mode.
+
+Publishing the result defaults to display mode even after processing feedback.
+Open the review/comment panel only when the user explicitly asks for that UI;
+then use `--review` and its corresponding URL.
 
 Then, per Workflow C, leave a reply on each addressed comment. Packet ids use
 `comment:<id>` and `annotation:<id>`; strip only the `comment:` prefix for this

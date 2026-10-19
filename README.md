@@ -74,9 +74,12 @@ copilot plugin install artifacts-beam@artibeam
 ### Claude Code
 
 ```shell
-/plugin marketplace add JeffreySun/artifacts-beam
-/plugin install artifacts-beam@artibeam
+claude plugin marketplace add JeffreySun/artifacts-beam
+claude plugin install artifacts-beam@artibeam
 ```
+
+Equivalent `/plugin` commands work inside a Claude session; confirm installation
+in the details panel when prompted.
 
 ### OpenAI Codex / ChatGPT desktop
 
@@ -134,7 +137,7 @@ All three agents share exactly one copy of the skill; only a thin per-agent mani
 
 ```
 plugins/artifacts-beam/
-├── plugin.json                     # Copilot CLI manifest
+├── plugin.json                     # portable Agent Plugins manifest (Copilot)
 ├── .claude-plugin/plugin.json      # Claude Code manifest
 ├── .codex-plugin/plugin.json       # Codex manifest
 ├── assets/icon.svg                # first-party listing/composer icon
@@ -173,8 +176,9 @@ natively on Windows, macOS, and Linux. The Windows browser-launch regression
 uses the real PowerShell parser and a loopback sign-in fixture, substituting only
 the GUI browser action; it does not sign in to a real account.
 
-Your access token is stored locally with `0600` permissions and is never committed. It is
-scoped to this device and can be revoked on its own, without touching your browser session.
+Your device credential is stored locally with `0600` permissions where POSIX is
+supported; Windows uses the user-profile location and OS access controls.
+Token values are never committed and can be revoked independently of your browser session.
 
 ## Privacy
 
@@ -187,8 +191,15 @@ scoped to view-only, given an expiry, or locked behind a passcode.
 ```shell
 node scripts/validate-plugins.mjs                    # packaging gate (CI)
 node --test scripts/*.test.mjs plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.test.mjs
+node scripts/validate-marketplaces.mjs                # pinned native clients on PATH
 node scripts/package-openai.mjs                      # local upload ZIP; requires Git and zip
 ```
+
+The native marketplace gate uses Claude Code 2.1.296 and Copilot CLI 1.0.98 in
+disposable profiles; these maintainer clients require an appropriate environment
+(Node 22+ for the npm Claude validator). CI supplies the pinned tools separately
+from the dependency-free plugin runtime and requires native marketplace checks
+before packaging.
 
 `validate-plugins.mjs` is the CI gate. It checks that all three manifests agree on name and
 version, publisher metadata stays **VertiWorks Labs**, marketplace versions/paths
@@ -196,10 +207,12 @@ agree, and the skill metadata and Codex desktop-only declaration remain intact.
 It also checks current public-listing text limits and bundled icon paths.
 `agents/openai.yaml` keeps its separate 25-64 character skill-description limit.
 
-The packager generates a portable OpenAI manifest in
+The packager generates an OpenAI-specific portable manifest in
 `dist/artifacts-beam-openai-<version>.zip`; it does not replace the Copilot source
 manifest. Only tracked skill files, listing assets, and the original license are
 included. CI retains the ZIP as the `artifacts-beam-openai` artifact.
+The source root manifest uses Agent Plugins 1.0 metadata; its standard `skills/`
+directory remains the shared skill source for every wrapper.
 Packaging runs on Ubuntu after all three native runtime jobs succeed; Windows
 end users do not need the maintainer's `zip` utility.
 
@@ -221,6 +234,20 @@ review/publication steps.
 > correct per the Codex spec — don't "fix" one to match the other.
 
 Issues and PRs welcome.
+
+## Claude and Copilot publishing
+
+The source marketplaces are directly installable; that is not curated approval.
+Claude's public directory uses its developer portal and the repository's plugin
+path, while the default Awesome Copilot catalog uses an external-plugin issue
+with an immutable release revision. Neither is a GitHub App or VSIX upload.
+See the [detailed vendor publishing guide](docs/claude-copilot-publishing.md) for
+company ownership/roles, native validation, exact source fields, data handling,
+review/publish settings, update behavior and remaining human/vendor gates.
+
+Published/canvased results open in **display mode by default**, including after
+applying feedback. Review UI is an explicit opt-in, not an automatic consequence
+of fetching comments or supplying a review packet.
 
 ## License
 

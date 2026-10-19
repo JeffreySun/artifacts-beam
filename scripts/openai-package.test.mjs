@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const PLUGIN = "plugins/artifacts-beam";
 const CODEX = `${PLUGIN}/.codex-plugin/plugin.json`;
+const CLAUDE = `${PLUGIN}/.claude-plugin/plugin.json`;
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "abeam-package-"));
@@ -47,7 +48,7 @@ function trackedFixture(t) {
 }
 
 function archivePath(root) {
-  return path.join(root, "dist/artifacts-beam-openai-0.2.2.zip");
+  return path.join(root, "dist/artifacts-beam-openai-0.2.3.zip");
 }
 
 function entries(root) {
@@ -128,7 +129,7 @@ test("the upload ZIP is portable, company-owned, and runnable after extraction",
   const manifest = JSON.parse(manifestEntry.stdout);
   assert.equal(manifest.$schema, "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json");
   assert.equal(manifest.name, "artifacts-beam");
-  assert.equal(manifest.version, "0.2.2");
+  assert.equal(manifest.version, "0.2.3");
   assert.equal(manifest.author.name, "VertiWorks Labs");
   assert.equal(manifest.extensions["com.openai"].interface.developerName, "VertiWorks Labs");
   assert.equal(manifest.extensions["com.openai"].requires_local_executor, true);
@@ -201,7 +202,7 @@ test("tracked symlinks fail without leaking data or replacing the last good ZIP"
   assert.equal(result.status, 1);
   assert.match(result.stderr, /symlink|regular file/i);
   assert.deepEqual(fs.readFileSync(archivePath(root)), before);
-  assert.deepEqual(fs.readdirSync(path.join(root, "dist")), ["artifacts-beam-openai-0.2.2.zip"]);
+  assert.deepEqual(fs.readdirSync(path.join(root, "dist")), ["artifacts-beam-openai-0.2.3.zip"]);
 });
 
 test("publisher validation cannot be bypassed by calling the packager directly", (t) => {
@@ -230,4 +231,83 @@ test("every referenced listing asset must be tracked before packaging", (t) => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /tracked.*asset|asset.*tracked/i);
   assert.ok(!fs.existsSync(archivePath(root)));
+});
+
+for (const field of ["displayName", "icon", "documentationUrl", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl"]) {
+  test(`marketplace readiness refuses missing Claude ${field}`, (t) => {
+    const root = fixture(t);
+    editJson(root, CLAUDE, (manifest) => { delete manifest[field]; });
+    const result = run(root, "validate-plugins.mjs");
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.match(result.stderr, new RegExp(`Claude.*${field}`));
+  });
+}
+
+for (const value of ["http://example.test/privacy", "https://user:password@example.test/privacy"]) {
+  test(`marketplace readiness rejects an unsafe Claude privacy URL: ${new URL(value).protocol}`, (t) => {
+    const root = fixture(t);
+    editJson(root, CLAUDE, (manifest) => { manifest.privacyPolicyUrl = value; });
+    const result = run(root, "validate-plugins.mjs");
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.match(result.stderr, /Claude.*privacyPolicyUrl.*HTTPS/);
+  });
+}
+
+test("marketplace readiness rejects a Claude icon outside the plugin", (t) => {
+  const root = fixture(t);
+  editJson(root, CLAUDE, (manifest) => { manifest.icon = "../../LICENSE"; });
+  const result = run(root, "validate-plugins.mjs");
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.match(result.stderr, /Claude.*icon.*assets/);
+});
+
+test("marketplace readiness requires a Claude catalog description", (t) => {
+  const root = fixture(t);
+  editJson(root, ".claude-plugin/marketplace.json", (manifest) => {
+    delete manifest.description;
+    if (manifest.metadata) delete manifest.metadata.description;
+  });
+  const result = run(root, "validate-plugins.mjs");
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.match(result.stderr, /Claude marketplace.*description/);
+});
+
+test("marketplace readiness requires the supported portable Copilot manifest", (t) => {
+  const root = fixture(t);
+  editJson(root, `${PLUGIN}/plugin.json`, (manifest) => { delete manifest.$schema; });
+  const result = run(root, "validate-plugins.mjs");
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.match(result.stderr, /Copilot.*schema/);
+});
+
+test("portable Copilot metadata cannot override fixed skill discovery", (t) => {
+  const root = fixture(t);
+  editJson(root, `${PLUGIN}/plugin.json`, (manifest) => { manifest.skills = "./elsewhere"; });
+  const result = run(root, "validate-plugins.mjs");
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.match(result.stderr, /Copilot.*(portable|fields|skills)/);
+});
+
+test("subdirectory distribution retains a plugin-local license", (t) => {
+  const root = fixture(t);
+  fs.rmSync(path.join(root, PLUGIN, "LICENSE"), { force: true });
+  const result = run(root, "validate-plugins.mjs");
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.match(result.stderr, /plugin.*LICENSE|LICENSE.*plugin/i);
+});
+
+test("plugin-local license preserves the original attribution", (t) => {
+  const root = fixture(t);
+  fs.writeFileSync(path.join(root, PLUGIN, "LICENSE"), "A different attribution\n");
+  const result = run(root, "validate-plugins.mjs");
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.match(result.stderr, /LICENSE.*match|license.*attribution/i);
+});
+
+test("directory README minimum counts prose rather than code blocks", (t) => {
+  const root = fixture(t);
+  fs.writeFileSync(path.join(root, PLUGIN, "README.md"), `# Artifact\n\n\`\`\`text\n${"example ".repeat(60)}\n\`\`\`\n`);
+  const result = run(root, "validate-plugins.mjs");
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.match(result.stderr, /README.*40.*words/);
 });
