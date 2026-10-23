@@ -231,8 +231,10 @@ It also checks current public-listing text limits and bundled icon paths.
 `agents/openai.yaml` keeps its separate 25-64 character skill-description limit.
 
 The packager generates an OpenAI-specific portable manifest in
-`dist/artifacts-beam-openai-<version>.zip`; it does not replace the Copilot source
-manifest. The ZIP includes the hosted MCP declaration, remote-only skill, listing
+`dist/artifacts-beam-mcp-openai-<version>.zip` for the separate OpenAI plugin
+`artifacts-beam-mcp` (display name **Artifacts Beam MCP**). It does not rename the
+installed native plugins or replace the Copilot source manifest.
+The ZIP includes the hosted MCP declaration, remote-only skill, listing
 assets and original license, not local runtime scripts. CI retains it as the
 `artifacts-beam-openai` artifact.
 The source root manifest uses Agent Plugins 1.0 metadata; its standard `skills/`
@@ -245,6 +247,10 @@ end users do not need the maintainer's `zip` utility.
 Repository-marketplace installation is **not** an approved public directory
 listing. This release prepares a remote MCP upload package; it does
 not upload, submit, or publish it.
+
+Create a **new With MCP plugin** for this package. OpenAI does not allow changing
+an existing plugin's MCP server list, so do not upload it as a new version of the
+original `artifacts-beam` skills-only listing.
 
 Publication must use the **VertiWorks Labs business-verified developer identity**
 in the correct OpenAI organization/project, never a personal developer identity.

@@ -49,7 +49,7 @@ function trackedFixture(t) {
 
 function archivePath(root) {
   const version = JSON.parse(fs.readFileSync(path.join(root, CODEX), "utf8")).version;
-  return path.join(root, `dist/artifacts-beam-openai-${version}.zip`);
+  return path.join(root, `dist/artifacts-beam-mcp-openai-${version}.zip`);
 }
 
 function entries(root) {
@@ -129,10 +129,11 @@ test("the upload ZIP includes authenticated remote MCP and a cloud-safe company-
   assert.equal(manifestEntry.status, 0, manifestEntry.stderr);
   const manifest = JSON.parse(manifestEntry.stdout);
   assert.equal(manifest.$schema, "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json");
-  assert.equal(manifest.name, "artifacts-beam");
+  assert.equal(manifest.name, "artifacts-beam-mcp");
   assert.equal(manifest.version, "0.3.0");
   assert.equal(manifest.author.name, "VertiWorks Labs");
   assert.equal(manifest.extensions["com.openai"].interface.developerName, "VertiWorks Labs");
+  assert.equal(manifest.extensions["com.openai"].interface.displayName, "Artifacts Beam MCP");
   assert.equal(manifest.extensions["com.openai"].requires_local_executor, false);
   assert.equal(manifest.extensions["com.openai"].interface.logo, "./assets/icon.svg");
   assert.ok(!("interface" in manifest));
@@ -156,6 +157,28 @@ test("the upload ZIP includes authenticated remote MCP and a cloud-safe company-
   assert.match(skill, /approval_required/);
   assert.doesNotMatch(skill, /abeam\.mjs|session\.json|node scripts|local Node/i);
   assert.ok(!entries(root).some((file) => file.endsWith(".mjs")));
+});
+
+test("the separate OpenAI package never inherits a native listing ID or rewrites installed plugin identities", (t) => {
+  const root = trackedFixture(t);
+  editJson(root, CODEX, (manifest) => { manifest.id = "plugin_test_existing_listing"; });
+  const nativeBefore = fs.readFileSync(path.join(root, CODEX), "utf8");
+  const hostedBefore = fs.readFileSync(path.join(root, PLUGIN, ".codex-plugin/openai-mcp.json"), "utf8");
+
+  const result = run(root, "package-openai.mjs");
+
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const entry = spawnSync("unzip", ["-p", archivePath(root), "plugin.json"], { encoding: "utf8" });
+  assert.equal(entry.status, 0, entry.stderr);
+  const manifest = JSON.parse(entry.stdout);
+  assert.equal(manifest.id, undefined);
+  assert.equal(manifest.extensions["com.openai"].id, undefined);
+  assert.equal(fs.readFileSync(path.join(root, CODEX), "utf8"), nativeBefore);
+  for (const file of [CODEX, CLAUDE, `${PLUGIN}/plugin.json`])
+    assert.equal(JSON.parse(fs.readFileSync(path.join(root, file), "utf8")).name, "artifacts-beam");
+  const mcp = spawnSync("unzip", ["-p", archivePath(root), "mcp.json"], { encoding: "utf8" });
+  assert.equal(mcp.status, 0, mcp.stderr);
+  assert.equal(mcp.stdout, hostedBefore);
 });
 
 test("native Codex declares its own registered OAuth client, not the portal-only extension", (t) => {
