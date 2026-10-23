@@ -12,6 +12,7 @@ const NATIVE_MCP = `${PLUGIN}/.codex-plugin/mcp.json`;
 const HOSTED_MCP = `${PLUGIN}/.codex-plugin/openai-mcp.json`;
 const SKILL = `${PLUGIN}/skills/artifacts-beam`;
 const REMOTE_SKILL = `${SKILL}/references/mcp-workflow.md`;
+const OPENAI_PLUGIN_NAME = "artifacts-beam-mcp";
 const TIMESTAMP = new Date("2000-01-01T00:00:00Z");
 
 function command(program, args, options = {}) {
@@ -59,15 +60,18 @@ try {
     if (!tracked.has(asset)) throw new Error(`Listing asset must be tracked before packaging: ${asset}`);
   }
 
-  const manifest = { $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json" };
-  for (const key of ["name", "version", "description", "author", "homepage", "repository", "license", "keywords"]) {
+  const manifest = {
+    $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+    name: OPENAI_PLUGIN_NAME,
+  };
+  for (const key of ["version", "description", "author", "homepage", "repository", "license", "keywords"]) {
     if (source[key] !== undefined) manifest[key] = source[key];
   }
   const openai = {
     requires_local_executor: source.requires_local_executor,
-    interface: source.interface,
+    interface: { ...source.interface, displayName: "Artifacts Beam MCP" },
   };
-  if (source.id !== undefined) openai.id = source.id;
+  // The MCP listing is separate from the original plugin; never inherit its portal ID.
   manifest.extensions = { "com.openai": openai };
   for (const relative of tracked) {
     regularFile(relative);
@@ -97,7 +101,7 @@ try {
     stage(target, fs.readFileSync(regularFile(relative)));
     files.push(target);
   }
-  const name = `artifacts-beam-openai-${source.version}.zip`;
+  const name = `${OPENAI_PLUGIN_NAME}-openai-${source.version}.zip`;
   const archive = path.join(temporary, name);
   command("zip", ["-X", "-q", archive, ...files.sort()], {
     cwd: staging,

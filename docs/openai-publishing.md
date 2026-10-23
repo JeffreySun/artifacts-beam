@@ -2,7 +2,8 @@
 
 ## Status
 
-Version 0.3.0 includes the authenticated remote endpoint
+The separate **Artifacts Beam MCP** plugin (`artifacts-beam-mcp`), version 0.3.0,
+includes the authenticated remote endpoint
 **https://artibeam.ai/mcp** and a cloud-safe skill. It is prepared for **With MCP**,
 not the skills-only/desktop-only intake path. Package generation does not upload,
 submit, approve, or publish a directory listing.
@@ -13,10 +14,17 @@ An organization owner or Apps Management Write role is required. Manifest author
 text does not establish that verified identity. Never use a personal identity as
 a temporary substitute or include private reviewer credentials in the ZIP.
 
-OpenAI currently does not support adding MCP to an existing skills-only plugin
-through an ordinary update. If 0.2.3 already has a skills-only draft/listing, use
-the appropriate new With MCP draft or resolve migration with OpenAI. Do not claim
-that uploading 0.3.0 automatically converts the old listing.
+OpenAI does not support adding, removing or replacing MCP servers on an existing
+plugin. The original `artifacts-beam` skills-only listing therefore cannot accept
+the MCP package as an update. The exporter now uses the distinct name
+`artifacts-beam-mcp` and display name `Artifacts Beam MCP`, with no inherited listing
+ID. Installed Codex/Claude/Copilot plugin identities and the service's MCP server
+name, endpoint and OAuth registration remain unchanged.
+
+If the portal reports **"Create a new plugin to change MCP servers"**, leave the
+existing plugin's update screen and start a **new With MCP plugin** from the
+Plugins overview. Upload the newly named ZIP below. Renaming only a ZIP file or
+increasing its version cannot change an existing listing's server list.
 
 ## Build
 
@@ -27,7 +35,7 @@ download `artifacts-beam-openai` from a successful repository CI run.
 node scripts/validate-plugins.mjs
 node --test scripts/openai-package.test.mjs
 node scripts/package-openai.mjs
-unzip -t dist/artifacts-beam-openai-0.3.0.zip
+unzip -t dist/artifacts-beam-mcp-openai-0.3.0.zip
 ```
 
 Stage/commit new package inputs first: only tracked files are eligible.
@@ -74,7 +82,9 @@ IDs, workspace IDs, DCR or CIMD configuration in the package.
 ## Connect and submit
 
 1. Select the company organization/project and verified business identity.
-2. Upload the ZIP through **With MCP**, including MCP in the initial package.
+2. Start a **new plugin** through **With MCP** and upload
+   `artifacts-beam-mcp-openai-0.3.0.zip`, including MCP in its initial package.
+   Do not use **Upload new version** on the original `artifacts-beam` listing.
 3. Inspect imported publisher/version, icon, public policy URLs, cloud skill and
    MCP authentication settings. Fix findings in source and upload a complete ZIP.
 4. Complete the portal's exact domain challenge at
@@ -125,7 +135,8 @@ Do not describe all service links as one-time-only.
 Keep the source manifests, marketplace versions and both skill metadata headers
 consistent. Rebuild for metadata/skill changes. Hosted tool changes require the
 portal's rescan/review process; source installation does not imply public approval.
-For an existing MCP listing, follow OpenAI's update flow and preserve its identity.
+After the new `artifacts-beam-mcp` listing exists, preserve that identity and its
+server list for future updates. Never copy the original plugin's portal ID into it.
 
 - [Package and MCP authentication](https://developers.openai.com/plugins/build/plugins)
 - [Submission, domain verification and review](https://developers.openai.com/plugins/deploy/submission)

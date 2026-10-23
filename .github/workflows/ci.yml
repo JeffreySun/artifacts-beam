@@ -75,5 +75,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts-beam-openai
-          path: dist/artifacts-beam-openai-*.zip
+          path: dist/artifacts-beam-mcp-openai-*.zip
           if-no-files-found: error
