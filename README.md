@@ -6,8 +6,9 @@
 
 **Your coding agent just built you an HTML page. Now get it reviewed — without deploying anything.**
 
-Publish local HTML straight from your agent, get a link anyone can open, and pull their
-comments back into the chat so your agent can act on them.
+Publish HTML straight from your agent, approve a link anyone can open, and pull
+feedback back into the chat. Codex uses the authenticated remote MCP; Copilot CLI
+and Claude Code retain the working local helper.
 
 [![CI](https://github.com/JeffreySun/artifacts-beam/actions/workflows/ci.yml/badge.svg)](https://github.com/JeffreySun/artifacts-beam/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -31,7 +32,8 @@ deploy. Then the feedback comes back as scattered messages you have to re-type i
 you  ▸ publish this to artifacts beam and give me a link my team can comment on
 
      ✓ Published dashboard.html — version 3
-     ✓ Share link (comment): https://artibeam.ai/s/ZfyIrDsNURD8H5GLqESn
+     ▸ Approve public sharing in your browser
+     ✓ Share link (comment): https://artibeam.ai/s/example-capability
 
         …teammates open it in a browser and leave comments…
 
@@ -44,7 +46,7 @@ you  ▸ what feedback did I get?
 
 you  ▸ apply those and publish a new version
 
-     ✓ Fixed all 3 · Published version 4 · Replied to each comment
+     ✓ Applied the selected feedback · Published version 4 · Returned display link
 ```
 
 **Viewing a share link needs no account or installation. Reviewers sign in to leave
@@ -56,9 +58,9 @@ comments.** Workspace access and sharing policies still apply.
 |---|---|
 | 🔗 **Links, not deployments** | One command turns a local `.html` into a URL. No server, no branch, no build. |
 | 👥 **Easy to review** | Open share links anonymously; sign in to comment. No reviewer plugin installation. |
-| 🔒 **You stay in control** | Links are revocable, and can carry an expiry date and a passcode. |
+| 🔒 **You stay in control** | MCP sharing requires browser approval and expiry; website/helper links also support passcodes. |
 | 💬 **Comments come to you** | Your agent reads the feedback and edits the HTML — you never re-type a review. |
-| 🕒 **Versions are automatic** | Re-publishing the same file makes v2, v3, v4… with full history. |
+| 🕒 **Versioned updates** | Publish to an explicit artifact against its captured base; retention still applies. |
 | 🤖 **Works in three agents** | One skill for Copilot CLI, Claude Code, and Codex. |
 | **Workspace-aware updates** | Choose the destination, target an existing artifact, and refuse stale review-based updates. |
 
@@ -90,13 +92,28 @@ codex plugin add artifacts-beam@artibeam
 
 Adding the marketplace only makes the plugin *available* — the second command installs it.
 You can also enable it from the **ChatGPT desktop app → Plugins**.
-This plugin runs a local Node.js helper. The OpenAI directory package is
-**desktop-only**, not a ChatGPT web integration.
+Codex 0.145.0 discovers the bundled remote server at `https://artibeam.ai/mcp`
+with its registered public OAuth client. Connect through the host's browser flow
+and choose one workspace. The remote workflow needs no local executor.
+The generated OpenAI ZIP uses the separate hosted OAuth configuration and is
+prepared for **With MCP** submission; this is not a claim of directory approval.
 
 > `artifacts-beam` is the plugin; `artibeam` is the marketplace it ships in — hence
 > `artifacts-beam@artibeam`.
 
-### First run
+### First run with MCP
+
+Connect Artifacts Beam through the host's OAuth flow, then let the agent call
+`get_profile`. Check the connected account/workspace before a mutation. Owners or
+company administrators may need to opt the workspace into external AI access.
+If the host cannot automatically request write/share permissions, reconnect with
+the required scopes; never switch credentials to bypass a denial.
+
+See [the MCP workflow](plugins/artifacts-beam/skills/artifacts-beam/references/mcp-workflow.md)
+for the nine tools, 128 KiB complete-HTML limit, exact-base updates and public-share
+approval. A real signed-in host connection still needs user consent.
+
+### First run with the local helper
 
 Just say *"log in to artifacts beam"*. Your browser opens, you sign in with an enabled
 **Microsoft**, **Google**, or **Apple** account, and you're done — nothing to copy, nothing to
@@ -110,7 +127,9 @@ Full walkthrough:
 
 ## What you can say
 
-The skill triggers on intent — no commands to memorise:
+The skill triggers on intent — no commands to memorise. MCP supports publishing,
+bounded feedback and public-share management; replies, visibility/tags, passcodes
+and other extended operations remain website/local-helper workflows:
 
 - *"publish this html to artifacts beam"*
 - *"create a share link that expires in 7 days"*
@@ -129,7 +148,8 @@ application-managed; the helper does not invoke metered server AI.
 
 ## How it works
 
-Every action runs through a **zero-dependency** Node helper —
+The MCP workflow uses nine bounded tools on the existing Artifacts Beam service.
+The retained local integration uses a **zero-dependency** Node helper —
 [`abeam.mjs`](plugins/artifacts-beam/skills/artifacts-beam/scripts/abeam.mjs) — built only
 on `fetch`/`FormData`/`Blob`. Nothing to `npm install`.
 
@@ -140,6 +160,8 @@ plugins/artifacts-beam/
 ├── plugin.json                     # portable Agent Plugins manifest (Copilot)
 ├── .claude-plugin/plugin.json      # Claude Code manifest
 ├── .codex-plugin/plugin.json       # Codex manifest
+├── .codex-plugin/mcp.json          # native Codex OAuth connection
+├── .codex-plugin/openai-mcp.json   # hosted OpenAI connection input
 ├── assets/icon.svg                # first-party listing/composer icon
 └── skills/artifacts-beam/          # the ONE shared skill
     ├── SKILL.md                    # instructions + trigger phrases
@@ -168,7 +190,8 @@ Other       dashboard · delete · delete-version · config
 
 ## Requirements
 
-- **Node 18+** — for the helper's built-in `fetch`/`FormData`/`Blob`.
+- **MCP:** a compatible host and browser-managed OAuth; no local runtime.
+- **Local helper:** Node 18+ for built-in `fetch`/`FormData`/`Blob`.
 - A browser, once, to sign in — on the same machine, or any other one if you use `--device`.
 
 The runtime supports Windows and macOS. CI runs helper/authentication checks
@@ -176,7 +199,7 @@ natively on Windows, macOS, and Linux. The Windows browser-launch regression
 uses the real PowerShell parser and a loopback sign-in fixture, substituting only
 the GUI browser action; it does not sign in to a real account.
 
-Your device credential is stored locally with `0600` permissions where POSIX is
+The local helper's device credential is stored with `0600` permissions where POSIX is
 supported; Windows uses the user-profile location and OS access controls.
 Token values are never committed and can be revoked independently of your browser session.
 
@@ -203,14 +226,15 @@ before packaging.
 
 `validate-plugins.mjs` is the CI gate. It checks that all three manifests agree on name and
 version, publisher metadata stays **VertiWorks Labs**, marketplace versions/paths
-agree, and the skill metadata and Codex desktop-only declaration remain intact.
+agree, and native/hosted MCP registrations and cloud-safe skill metadata stay correct.
 It also checks current public-listing text limits and bundled icon paths.
 `agents/openai.yaml` keeps its separate 25-64 character skill-description limit.
 
 The packager generates an OpenAI-specific portable manifest in
 `dist/artifacts-beam-openai-<version>.zip`; it does not replace the Copilot source
-manifest. Only tracked skill files, listing assets, and the original license are
-included. CI retains the ZIP as the `artifacts-beam-openai` artifact.
+manifest. The ZIP includes the hosted MCP declaration, remote-only skill, listing
+assets and original license, not local runtime scripts. CI retains it as the
+`artifacts-beam-openai` artifact.
 The source root manifest uses Agent Plugins 1.0 metadata; its standard `skills/`
 directory remains the shared skill source for every wrapper.
 Packaging runs on Ubuntu after all three native runtime jobs succeed; Windows
@@ -219,7 +243,7 @@ end users do not need the maintainer's `zip` utility.
 ## OpenAI directory publication
 
 Repository-marketplace installation is **not** an approved public directory
-listing. This change prepares a skills-only, desktop-only upload package; it does
+listing. This release prepares a remote MCP upload package; it does
 not upload, submit, or publish it.
 
 Publication must use the **VertiWorks Labs business-verified developer identity**

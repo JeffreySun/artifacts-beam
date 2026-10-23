@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Plugins for Artifacts Beam \u2014 publish HTML, share it, get it reviewed.",
-    "version": "0.2.3"
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "artifacts-beam",
       "description": "Publish local HTML, share a revocable link anyone can open without signing up, and pull reviewer comments back into your chat to iterate.",
-      "version": "0.2.3",
+      "version": "0.3.0",
       "source": "plugins/artifacts-beam",
       "license": "MIT",
       "homepage": "https://artibeam.ai",

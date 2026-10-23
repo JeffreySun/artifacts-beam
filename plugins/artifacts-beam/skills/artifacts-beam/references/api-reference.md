@@ -28,8 +28,8 @@ Base URL: `https://artibeam.ai` (override with `config --site` or
 | `diff <specId> <from> <to>` | `GET /api/specs/{id}/versions/{from}/diff/{to}` | Visible-text diff, not raw HTML/source diff |
 | `content <specId> [--version n] [--out f]` | `GET /api/specs/{id}/versions/{n}/content` | Defaults to latest; prints or writes the HTML |
 | `open <specId> [--version n] [--review]` | (browser) | Display by default; review UI only when explicitly requested |
-| `share-create <specId> [--permission view\|comment] [--version n] [--expires-days n] [--passcode x]` | `POST /api/specs/{id}/shares` | Sends `versionPin`; returns the full `url` **once** |
-| `share-list <specId>` | `GET /api/specs/{id}/shares` | URLs are not re-shown (only metadata) |
+| `share-create <specId> [--permission view\|comment] [--version n] [--expires-days n] [--passcode x]` | `POST /api/specs/{id}/shares` | Sends `versionPin`; returns the full `url` |
+| `share-list <specId>` | `GET /api/specs/{id}/shares` | Authorized URLs can be redisplayed when the encrypted token remains recoverable |
 | `share-revoke <specId> <shareId>` | `DELETE /api/specs/{id}/shares/{shareId}` | Owner only |
 | `comments <specId> [--filter open\|resolved\|all]` | `GET /api/specs/{id}/comments` | Filtered client-side |
 | `annotations <specId> [--version n]` | `GET /api/specs/{id}/annotations?version=n` | Ink, spatial anchors, instructions; distinct from comment threads |

@@ -1,7 +1,7 @@
 {
   "name": "artifacts-beam",
-  "version": "0.2.3",
-  "description": "Publish HTML to Artifacts Beam, share revocable review links, collect comments and annotations, and publish versioned updates from your coding agent. Supports workspace selection and browser/device sign-in. Share-link viewing can be anonymous; commenting requires sign-in.",
+  "version": "0.3.0",
+  "description": "Publish private HTML, read bounded review feedback, and add exact-base revisions through the authenticated Artifacts Beam MCP. Public sharing requires your browser approval. Viewing a share can be anonymous; commenting requires sign-in.",
   "author": {
     "name": "VertiWorks Labs",
     "url": "https://artibeam.ai"
@@ -11,20 +11,21 @@
   "repository": "https://github.com/JeffreySun/artifacts-beam",
   "keywords": ["artifacts-beam", "html", "review", "share-links", "comments", "mockup"],
   "skills": "./skills/",
-  "requires_local_executor": true,
+  "mcpServers": "./.codex-plugin/mcp.json",
+  "requires_local_executor": false,
   "interface": {
     "displayName": "Artifacts Beam",
     "shortDescription": "Publish HTML and get feedback",
-    "longDescription": "Publish local HTML in your chosen Artifacts Beam workspace, create revocable share links, and bring comments and annotations back into your coding agent. Viewing share links can be anonymous; commenting requires sign-in. Update an explicit artifact, compare versions, or apply feedback against a captured published revision without silently appending stale changes. Workspace access, sharing policies, quotas, and retention still apply. Requires desktop execution with Node.js 18+.",
+    "longDescription": "Connect your account and one workspace through OAuth. Publish private HTML, find and read published artifacts, retrieve bounded review packets, and add new versions against an exact immutable base. Create expiring, version-pinned public links only after your browser approval, then list link metadata or revoke access. Workspace policy, permissions, quotas, and retention apply. The remote workflow needs no local executor; complete HTML input/output is limited to 128 KiB.",
     "developerName": "VertiWorks Labs",
     "category": "Productivity",
     "capabilities": [
-      "Select the active workspace and publish local HTML",
-      "Create revocable, optionally version-pinned share links",
-      "Read review packets, comments, and annotations",
-      "Publish feedback-driven updates with a stale-base precondition",
-      "Reply to comments and resolve explicitly approved threads",
-      "Compare versions and manage visibility and tags"
+      "Identify the connected account and workspace",
+      "Discover and read permitted published artifacts",
+      "Publish private HTML and exact-base immutable revisions",
+      "Retrieve bounded comments and annotations without server-side AI",
+      "Approve expiring public links in the browser",
+      "List share-link metadata and revoke links"
     ],
     "defaultPrompt": "Use $artifacts-beam to publish this HTML and give me a link my team can comment on.",
     "websiteURL": "https://artibeam.ai",

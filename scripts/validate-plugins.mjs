@@ -21,6 +21,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PLUGIN_REL = "plugins/artifacts-beam";
@@ -311,8 +312,10 @@ try {
 
   if (!m.author || typeof m.author !== "object" || !m.author.name)
     fail("Codex plugin.json: author must be an object with a name");
-  if (m.requires_local_executor !== true)
-    fail("Codex plugin.json: requires_local_executor must be true for the local Node helper");
+  if (m.requires_local_executor !== false)
+    fail("Codex plugin.json: requires_local_executor must be false for the remote MCP workflow");
+  if (m.mcpServers !== "./.codex-plugin/mcp.json")
+    fail("Codex plugin.json: mcpServers must reference the bundled native MCP configuration");
 
   const iface = m.interface;
   if (!iface || typeof iface !== "object") {
@@ -342,6 +345,58 @@ try {
   }
 } catch (e) {
   fail(e.message);
+}
+
+// Codex CLI and the OpenAI submission portal use different registered-client fields.
+try {
+  const native = readJson(`${PLUGIN_REL}/.codex-plugin/mcp.json`);
+  const expectedNative = {
+    mcpServers: {
+      "artifacts-beam": {
+        type: "http", url: "https://artibeam.ai/mcp",
+        oauth: { clientId: "artifacts-beam-codex-cli" },
+      },
+    },
+  };
+  if (!isDeepStrictEqual(native, expectedNative))
+    fail("Native MCP configuration must use the production endpoint and registered Codex client without headers or secrets");
+
+  const hosted = readJson(`${PLUGIN_REL}/.codex-plugin/openai-mcp.json`);
+  const expectedHosted = {
+    $schema: "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+    mcpServers: {
+      "artifacts-beam": {
+        type: "streamable-http", url: "https://artibeam.ai/mcp",
+        extensions: {
+          "com.openai": {
+            auth: {
+              type: "oauth",
+              client: { mode: "provided", clientId: "artifacts-beam-openai", tokenEndpointAuthMethod: "none" },
+              resource: "https://artibeam.ai/mcp",
+              baseScopes: ["artifacts:read", "offline_access"],
+              defaultScopes: ["artifacts:read", "offline_access"],
+            },
+          },
+        },
+      },
+    },
+  };
+  if (!isDeepStrictEqual(hosted, expectedHosted))
+    fail("OpenAI MCP configuration must declare the registered public OAuth client without credentials or headers");
+  for (const name of [".mcp.json", "mcp.json"]) {
+    if (fs.existsSync(path.join(PLUGIN_DIR, name)))
+      fail(`Source plugin ${name} would implicitly enable unqualified MCP hosts; use the Codex-scoped configuration`);
+  }
+  const remote = readText(`${PLUGIN_REL}/skills/artifacts-beam/references/mcp-workflow.md`);
+  if (!/^---\r?\nname: artifacts-beam\r?\n/.test(remote)
+      || !remote.includes(`  author: ${EXPECT_PUBLISHER}`)
+      || !remote.includes(`  version: "${parsed.Codex?.version}"`))
+    fail("MCP skill identity, publisher and version must agree with the plugin");
+  if (/abeam\.mjs|session\.json|node scripts|local Node/i.test(remote))
+    fail("MCP skill must be cloud-safe and not depend on local execution or credential files");
+  if (!errors.length) ok("Native and hosted MCP configurations and cloud skill agree ✓");
+} catch (e) {
+  fail(`MCP configuration: ${e.message}`);
 }
 
 // ── report ────────────────────────────────────────────────────────────────────

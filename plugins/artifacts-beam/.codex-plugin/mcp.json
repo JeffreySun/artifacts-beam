@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "artifacts-beam": {
+      "type": "http",
+      "url": "https://artibeam.ai/mcp",
+      "oauth": {
+        "clientId": "artifacts-beam-codex-cli"
+      }
+    }
+  }
+}

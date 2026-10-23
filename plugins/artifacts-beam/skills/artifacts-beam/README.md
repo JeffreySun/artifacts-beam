@@ -7,7 +7,12 @@ captured published revision. Anonymous viewing does not mean anonymous commentin
 reviewers sign in to comment. The same skill backs **GitHub
 Copilot CLI**, **Claude Code**, and **OpenAI Codex**.
 
-`login` signs you in through your browser (loopback redirect + PKCE) with a personal
+When MCP tools are present, begin with `get_profile` and follow
+[`references/mcp-workflow.md`](references/mcp-workflow.md). Codex bundles that
+authenticated remote connection; it does not need a local runtime. Public sharing
+requires the user's browser approval, and mutations retain the expected profile.
+
+In the retained local integration, `login` uses your browser (loopback redirect + PKCE) with a personal
 **Microsoft**, **Google**, or **Apple** account and stores a device-scoped bearer token,
 refreshed automatically. On a machine with no reachable browser — SSH, containers, CI —
 it falls back to a **device code** you approve elsewhere. See
@@ -25,11 +30,12 @@ artifacts-beam/
 │   └── install-skill.sh          # install to ~/.agents/skills (macOS/Linux)
 └── references/
     ├── auth-setup.md             # one-time browser sign-in
+    ├── mcp-workflow.md           # remote-only, scope-bound workflow
     ├── api-reference.md          # command ↔ HTTP endpoint map
     └── refinement-guide.md       # how to apply review comments
 ```
 
-## Requirements
+## Local-helper requirements
 
 - **Node.js 18+** (the helper uses the built-in global `fetch`, `FormData`, and
   `Blob` — no `npm install`, no dependencies).
@@ -77,8 +83,9 @@ panel.
 
 The helper (`scripts/abeam.mjs`) is intentionally **agent-agnostic and
 dependency-free**, so the equivalent Codex and Claude skills can reuse it verbatim —
-only the plugin manifests change per agent. OpenAI distribution requires desktop
-local execution; this is not a ChatGPT web or remote MCP integration.
+only the plugin manifests change per agent. Codex prefers the separately registered
+MCP connection. The OpenAI ZIP contains the remote-only workflow and no local helper
+runtime; public submission uses With MCP and still requires portal verification.
 
 ## Security
 

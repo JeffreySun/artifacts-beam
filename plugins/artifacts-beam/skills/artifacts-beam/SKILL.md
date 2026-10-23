@@ -4,7 +4,7 @@ description: "Use when users want to publish or version HTML on Artifacts Beam (
 license: MIT
 metadata:
   author: VertiWorks Labs
-  version: "0.2.3"
+  version: "0.3.0"
   helper: scripts/abeam.mjs
   service: https://artibeam.ai
 ---
@@ -15,16 +15,28 @@ Publish HTML, share it for review, and bring feedback into the coding agent.
 Share-link viewing can be anonymous; **commenting requires sign-in**. Workspace
 membership, grants, and organization policy still control permitted actions.
 
-This skill is **agent-agnostic**: every action runs through the portable, zero-
-dependency Node helper at [`scripts/abeam.mjs`](scripts/abeam.mjs). The same helper
-backs Copilot CLI, Codex, and Claude Code; only their plugin manifests differ.
-It requires **local Node.js 18+ execution**, not a remote MCP server or ChatGPT web.
+## Choose the available integration first
+
+If Artifacts Beam MCP tools are available, use the
+[MCP workflow](references/mcp-workflow.md), starting with `get_profile`. That is the
+Codex default and works without a local executor. Follow its profile preconditions,
+exact-base publication and browser-confirmed sharing rules; **do not run the local
+setup below in that mode**.
+
+If no MCP tools are installed and the user is in a local coding-agent environment,
+the existing portable Node.js 18+ helper remains available below for Copilot CLI,
+Claude Code and explicit desktop workflows. In a cloud-only host without MCP,
+explain that a connection is needed rather than attempting a local command.
+
+A denied MCP call is not a reason to switch to the helper or another credential.
+Use the host's OAuth reconnect flow for insufficient scope; stop on workspace,
+membership, egress or material-policy denial.
 
 Resolve `scripts/abeam.mjs` relative to this installed skill's directory, **not**
 the user's project. Prefix the example helper paths below with that absolute
 directory when working elsewhere; keep local HTML/output paths explicit.
 
-## Authentication model (read this first)
+## Local-helper authentication model
 
 `login` signs the user in through their **browser** using a loopback redirect and PKCE
 — nothing is copied or pasted. That yields a device-scoped bearer token which the
@@ -49,7 +61,7 @@ Do **not** activate for general local HTML editing with no Artifacts Beam intent
 
 ---
 
-## Setup check (always do this first)
+## Local-helper setup check (only when using the local integration)
 
 ```bash
 node scripts/abeam.mjs whoami
@@ -153,9 +165,9 @@ node scripts/abeam.mjs share-create <specId> --permission view
 node scripts/abeam.mjs share-create <specId> --permission comment --version 7 --expires-days 7
 ```
 
-- **Copy the URL immediately** — the server returns the full `https://…/s/{token}`
-  **once** and never re-displays it (only a hash is stored). Surface it to the user
-  verbatim.
+- Surface the returned `https://…/s/{token}` URL verbatim. The service stores a hash
+  and an encrypted recoverable copy; authorized website/helper listings may redisplay
+  the URL when the encryption key remains available. Do not claim it is one-time-only.
 - `--permission`: `view` (read-only) or `comment` (viewer can sign in to comment).
 - `--expires-days`: omit for "never expires".
 - `--passcode`: optional; the viewer must enter it to open.
@@ -165,13 +177,14 @@ node scripts/abeam.mjs share-create <specId> --permission comment --version 7 --
 
 Manage existing links:
 ```bash
-node scripts/abeam.mjs share-list <specId>          # list (URLs are not re-shown)
+node scripts/abeam.mjs share-list <specId>          # authorized URLs when recoverable
 node scripts/abeam.mjs share-revoke <specId> <shareId>
 ```
 
 Tell the user clearly when a link is **commentable vs view-only**, whether it has a
-**passcode**, and **when it expires**. Always remind them the URL can't be retrieved
-again — if lost, revoke and create a new one.
+**passcode**, and **when it expires**. If a URL is lost, first check the authorized
+sharing controls; revoke and replace only when recovery is unavailable and the user
+authorizes a new link.
 
 ---
 

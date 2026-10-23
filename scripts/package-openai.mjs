@@ -8,7 +8,10 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PLUGIN = "plugins/artifacts-beam";
 const CODEX = `${PLUGIN}/.codex-plugin/plugin.json`;
+const NATIVE_MCP = `${PLUGIN}/.codex-plugin/mcp.json`;
+const HOSTED_MCP = `${PLUGIN}/.codex-plugin/openai-mcp.json`;
 const SKILL = `${PLUGIN}/skills/artifacts-beam`;
+const REMOTE_SKILL = `${SKILL}/references/mcp-workflow.md`;
 const TIMESTAMP = new Date("2000-01-01T00:00:00Z");
 
 function command(program, args, options = {}) {
@@ -40,15 +43,15 @@ try {
   if (process.argv.length !== 2) throw new Error("Usage: node scripts/package-openai.mjs");
   command(process.execPath, [path.join(ROOT, "scripts/validate-plugins.mjs")]);
   const source = JSON.parse(fs.readFileSync(regularFile(CODEX), "utf8"));
-  if ("mcpServers" in source || "apps" in source)
-    throw new Error("This skills-only archive does not support MCP servers or app references.");
+  if (source.mcpServers !== "./.codex-plugin/mcp.json" || "apps" in source)
+    throw new Error("The MCP archive requires the approved native MCP source and no unregistered app references.");
   if (typeof source.skills !== "string"
       || path.resolve(ROOT, PLUGIN, source.skills) !== path.join(ROOT, PLUGIN, "skills"))
     throw new Error("The OpenAI package requires the bundled ./skills/ directory.");
 
   const tracked = new Set(command("git", ["-C", ROOT, "ls-files", "-z", "--",
-    "LICENSE", CODEX, SKILL, `${PLUGIN}/assets`]).split("\0").filter(Boolean));
-  for (const required of ["LICENSE", CODEX, `${SKILL}/SKILL.md`, `${SKILL}/scripts/abeam.mjs`]) {
+    "LICENSE", CODEX, NATIVE_MCP, HOSTED_MCP, SKILL, `${PLUGIN}/assets`]).split("\0").filter(Boolean));
+  for (const required of ["LICENSE", CODEX, NATIVE_MCP, HOSTED_MCP, `${SKILL}/SKILL.md`, REMOTE_SKILL, `${SKILL}/agents/openai.yaml`]) {
     if (!tracked.has(required)) throw new Error(`Required package input must be tracked: ${required}`);
   }
   for (const field of ["logo", "composerIcon"]) {
@@ -66,6 +69,11 @@ try {
   };
   if (source.id !== undefined) openai.id = source.id;
   manifest.extensions = { "com.openai": openai };
+  for (const relative of tracked) {
+    regularFile(relative);
+    if (/(^|\/)(\.env(?:\.[^/]*)?|\.artifactsbeam|\.abeam|abeam-cookies\.txt|session\.json)(\/|$)/i.test(relative))
+      throw new Error(`Refusing to package credential or private auth state: ${relative}`);
+  }
 
   const outputDir = path.join(ROOT, "dist");
   fs.mkdirSync(outputDir, { recursive: true });
@@ -79,11 +87,12 @@ try {
     fs.utimesSync(file, TIMESTAMP, TIMESTAMP);
   }
   stage("plugin.json", JSON.stringify(manifest, null, 2) + "\n");
-  const files = ["plugin.json"];
+  stage("mcp.json", fs.readFileSync(regularFile(HOSTED_MCP)));
+  stage("skills/artifacts-beam/SKILL.md", fs.readFileSync(regularFile(REMOTE_SKILL)));
+  const files = ["plugin.json", "mcp.json", "skills/artifacts-beam/SKILL.md"];
   for (const relative of [...tracked].sort()) {
-    if (relative === CODEX || relative.endsWith(".test.mjs")) continue;
-    if (/(^|\/)(\.env(?:\.[^/]*)?|\.artifactsbeam|\.abeam|abeam-cookies\.txt|session\.json)(\/|$)/i.test(relative))
-      throw new Error(`Refusing to package credential or private auth state: ${relative}`);
+    if (relative !== "LICENSE" && !relative.startsWith(`${PLUGIN}/assets/`)
+        && relative !== `${SKILL}/agents/openai.yaml`) continue;
     const target = relative === "LICENSE" ? "LICENSE" : relative.slice(PLUGIN.length + 1);
     stage(target, fs.readFileSync(regularFile(relative)));
     files.push(target);

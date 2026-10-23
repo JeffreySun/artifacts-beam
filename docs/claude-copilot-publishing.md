@@ -2,9 +2,11 @@
 
 Publisher metadata: **VertiWorks Labs**. Legal service operator: **VertiWorks Labs LLC**.
 Plugin id: `artifacts-beam`. Repository marketplace id: `artibeam`.
-Prepared release: **0.2.3**.
+Prepared release: **0.3.0**.
 
-This is a skills-only plugin with a readable, dependency-free Node helper.
+These two wrappers remain skills-only local integrations with a readable,
+dependency-free Node helper. Codex and the OpenAI upload ZIP now have separate
+remote MCP wiring; that does not silently enable MCP for these clients.
 Publishing/canvasing opens **display mode by default**, including after applying
 feedback. Only an explicit request to open review mode or the comment panel
 selects `--review`. A review packet is a publication precondition, not a UI mode.
@@ -252,7 +254,7 @@ is a separately registered, non-default collection; do not treat the two as the
 same catalog.
 
 Use the full 40-character **merged release commit SHA** that passed CI and
-contains version 0.2.3, or a deliberately created immutable release tag.
+contains version 0.3.0, or a deliberately created immutable release tag.
 Do not enter `main` or another branch as the immutable review reference.
 Confirm the source manifest at that exact revision matches the submitted version.
 
@@ -276,7 +278,7 @@ prepare the marketplace update. Our own release PR does not approve an upstream 
 | Plugin path | `plugins/artifacts-beam` |
 | Ref to review | Optional immutable tag; leave empty when using SHA alone |
 | Commit SHA | Actual full validated merged release SHA, not a placeholder or branch |
-| Version | `0.2.3` |
+| Version | `0.3.0` |
 | License | `MIT` |
 | Author name | `VertiWorks Labs` |
 | Author URL/homepage | `https://artibeam.ai` |
