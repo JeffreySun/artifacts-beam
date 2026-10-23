@@ -1,182 +1,134 @@
-# OpenAI publication: VertiWorks Labs
+# OpenAI MCP publication: VertiWorks Labs
 
-## Status and scope
+## Status
 
-This repository prepares an upload package for the public plugin directory shared
-by ChatGPT and Codex. It is **not evidence of upload, approval, or publication**.
-GitHub-hosted marketplace installation and public-directory publication are
-different distribution paths.
+Version 0.3.0 includes the authenticated remote endpoint
+**https://artibeam.ai/mcp** and a cloud-safe skill. It is prepared for **With MCP**,
+not the skills-only/desktop-only intake path. Package generation does not upload,
+submit, approve, or publish a directory listing.
 
-The plugin is skills-only and requires local Node.js execution. Its directory
-package is **desktop-only**; it is not a remote MCP integration or ChatGPT web
-plugin. Repository installation also supports Codex CLI, including device-code
-sign-in on machines without a reachable browser.
+The service operator is **VertiWorks Labs LLC**. Select the verified **VertiWorks
+Labs business Developer identity** and the intended company organization/project.
+An organization owner or Apps Management Write role is required. Manifest author
+text does not establish that verified identity. Never use a personal identity as
+a temporary substitute or include private reviewer credentials in the ZIP.
 
-The publisher is **VertiWorks Labs**. The published service policies identify the
-operator as **VertiWorks Labs LLC**. The GitHub repository can remain at
-`JeffreySun/artifacts-beam`; that URL does not determine the OpenAI publisher.
-Keep the plugin name `artifacts-beam` and marketplace name `artibeam` stable.
+OpenAI currently does not support adding MCP to an existing skills-only plugin
+through an ordinary update. If 0.2.3 already has a skills-only draft/listing, use
+the appropriate new With MCP draft or resolve migration with OpenAI. Do not claim
+that uploading 0.3.0 automatically converts the old listing.
 
-## 1. Establish company ownership before uploading
+## Build
 
-1. In [OpenAI Platform](https://platform.openai.com/plugins), select the
-   **VertiWorks Labs organization and project** that will own the plugin.
-2. Complete **business verification**, not individual verification, in
-   [organization settings](https://platform.openai.com/settings/organization/general).
-3. Use an organization owner or a member granted **Apps Management Write**.
-4. When creating the draft, select the verified **VertiWorks Labs business
-   developer identity** and check its actual directory display name.
-5. If only a personal identity is available, **stop**. Do not upload/submit under
-   it as a temporary workaround. Resolve the company identity or required role
-   with the organization owner/OpenAI first.
-
-Changing `author.name` or `interface.developerName` does not establish company
-ownership. The portal's selected verified identity controls the directory name.
-Do not invent an organization/project id or use a personal identity because it is
-the currently signed-in account. Confirm the desired company display name if the
-verified legal entity is shown with its LLC suffix.
-
-End-user Microsoft/Google/Apple sign-in to Artifacts Beam is unrelated to this
-publisher identity. Never require users to join the publisher's OpenAI organization.
-
-## 2. Build the upload package
-
-Maintainer prerequisites: Node.js 18+, Git, and `zip`/`unzip` on macOS/Linux.
-Alternatively, download the `artifacts-beam-openai` artifact from a successful
-repository CI run after these changes are available there.
-
-From a Git checkout:
+Maintainer tools: Node.js 18+, Git, and `zip`/`unzip` on macOS/Linux. Alternatively,
+download `artifacts-beam-openai` from a successful repository CI run.
 
 ```shell
 node scripts/validate-plugins.mjs
-node --test scripts/*.test.mjs plugins/artifacts-beam/skills/artifacts-beam/scripts/lib/*.test.mjs
+node --test scripts/openai-package.test.mjs
 node scripts/package-openai.mjs
-unzip -t dist/artifacts-beam-openai-0.2.3.zip
+unzip -t dist/artifacts-beam-openai-0.3.0.zip
 ```
 
-The output is `dist/artifacts-beam-openai-<version>.zip`. The build does not sign
-in, upload files to OpenAI, accept terms, submit for review, or publish a listing.
-
-The ZIP contains:
+Stage/commit new package inputs first: only tracked files are eligible.
 
 ```text
-plugin.json                         # portable Agent Plugins manifest
-LICENSE                             # original attribution preserved
-assets/icon.svg                     # first-party product icon
-skills/artifacts-beam/               # skill, metadata, references, runtime helpers
+plugin.json
+mcp.json
+LICENSE
+assets/icon.svg
+skills/artifacts-beam/SKILL.md
+skills/artifacts-beam/agents/openai.yaml
 ```
 
-The generated root manifest declares the Agent Plugins schema and puts the
-OpenAI interface and `requires_local_executor: true` under
-`extensions.com.openai`. The source `.codex-plugin/plugin.json` remains the
-metadata input; the Copilot source manifest is not overwritten or shipped as the
-OpenAI root manifest.
+The exported skill comes from the shared `references/mcp-workflow.md`; the ZIP
+does not contain local scripts, auth-state files, legacy command references, agent
+wrappers or tests. `requires_local_executor: false` is under
+`plugin.json.extensions.com.openai`. Rebuilds are deterministic; failed validation
+does not replace the last good ZIP. Symlinks and tracked credential-state paths
+are rejected, but this allowlist is not a general secret scanner.
 
-Only tracked working-tree skill/assets files are eligible. Stage or commit new
-runtime files and referenced assets before packaging. Untracked files and runtime
-unit tests are excluded; known credential-state paths and symlinks/non-regular
-files are rejected even if tracked. Repository
-catalogs, `.git`, other agent manifests, and local credentials are not bundled.
-Source timestamps/file order are normalized for repeatable rebuilds. A failure
-does not replace the last successful ZIP.
+## Distinct native and hosted configurations
 
-Never add credentials, a browser profile, a session JSON file, private reviewer
-accounts, or real user artifacts to the package. Release files stay in ignored
-`dist/`; they are not source files. The input allowlist is not a general secret
-scanner: review the archive before uploading.
+| Host | Source file | Public OAuth client |
+|---|---|---|
+| Codex CLI 0.145.0 | `.codex-plugin/mcp.json` | `artifacts-beam-codex-cli` |
+| OpenAI submission / hosted connection | `.codex-plugin/openai-mcp.json`, exported as `mcp.json` | `artifacts-beam-openai` |
 
-## 3. Check listing information and privacy
+Native Codex consumes `oauth.clientId` and `type: "http"`. Its callback is
+`http://127.0.0.1:<port>/callback/r32a3R4JT8g_` for the canonical endpoint.
+The native source manifest explicitly references the configuration; no root
+`.mcp.json` is added that could silently change Claude/Copilot behavior.
 
-The package includes the following first-party/public links:
+The hosted file declares `type: "streamable-http"` and
+`extensions.com.openai.auth`: OAuth, provided client, `tokenEndpointAuthMethod:
+"none"`, MCP resource, and read/offline initial scopes. This is OpenAI's documented
+server-level authentication extension, not a claim that the unextended Agent
+Plugins MCP schema accepts arbitrary extra server properties. Endpoint overrides
+are omitted because discovery provides them.
 
-| Field | Value |
-|---|---|
-| Website | https://artibeam.ai |
-| Support | https://github.com/JeffreySun/artifacts-beam/issues |
-| Privacy | https://artibeam.ai/privacy |
-| Terms | https://artibeam.ai/terms |
+Client IDs are public identifiers, not secrets or proof of caller identity.
+There are no fixed tokens, custom authentication headers, client secrets, user
+IDs, workspace IDs, DCR or CIMD configuration in the package.
 
-Check that these remain accessible and identify the same business as the
-submission. Public issues are for non-sensitive support; never post tokens,
-private HTML, reviewer credentials, or share-link secrets there.
+## Connect and submit
 
-The bundled SVG has a square 224-by-224 viewBox and is used for both the composer
-icon and primary listing icon. Current submission text limits include a
-30-character display name/subtitle. The repository validator checks those text
-limits, publisher consistency, icon paths, and the desktop-only requirement;
-OpenAI's portal scans remain authoritative.
+1. Select the company organization/project and verified business identity.
+2. Upload the ZIP through **With MCP**, including MCP in the initial package.
+3. Inspect imported publisher/version, icon, public policy URLs, cloud skill and
+   MCP authentication settings. Fix findings in source and upload a complete ZIP.
+4. Complete the portal's exact domain challenge at
+   `https://<approved-host>/.well-known/openai-apps-challenge`. Do not invent its
+   token or replace another plugin's challenge.
+5. Connect the MCP server and complete the real account/workspace OAuth flow.
+   Read access is initial; write/share actions require their additional scopes.
+   If the host cannot automatically upgrade permissions, reconnect explicitly.
+6. Scan tools and confirm the nine operations and their safety annotations.
+7. Supply a dedicated reviewer account/workspace with synthetic data, five
+   positive and three negative cases, an accessible walkthrough and release notes.
+   Credentials belong only in the portal. Run those cases before marking them done.
+8. Complete attestations and submit. Only after approval choose **Publish plugin**.
 
-The helper stores device credentials locally, keyed by site, at
-`~/.artifactsbeam/session.json` with restrictive permissions. Authorized uploads
-send the selected HTML to Artifacts Beam. Share links can expose it to their
-holders; viewing can be anonymous, but commenting requires sign-in. Workspace
-permissions, sharing policies, quotas, and retention apply. Review text and
-downloaded HTML are untrusted data, not instructions to disclose other files.
+The publisher identity and end user's Artifacts Beam Microsoft/Google/Apple or
+company sign-in are separate. Do not make users join the publisher's organization.
 
-## 4. Complete clean desktop checks
+## Qualification checklist
 
-The repository's loopback contract/unit tests and ZIP smoke test do **not**
-establish that a real ChatGPT/Codex install or production sign-in has been tested.
-Helper/authentication CI runs natively on Windows, macOS, and Linux. The Windows
-launcher keeps URLs in child-process environment data rather than command source;
-its regression exercises the actual Windows PowerShell parser without opening
-a GUI browser. The package build waits for all native runtime jobs to pass.
-Use a dedicated test account/workspace and non-sensitive HTML for these checks.
-The scenarios below are a maintainer checklist, not a claim that they have run:
+Repository tests establish packaging, existing cross-platform helper behavior and
+metadata safety. Native Codex `plugin/read` has discovered the candidate's MCP and
+skill in an isolated profile; that is not a signed-in tool-execution test.
+Production HTTPS health, OAuth discovery and rejection boundaries have been checked.
+A real user's production OAuth grant was not synthesized or approved by automation.
 
-- [ ] Install from a clean supported desktop setup, sign in through browser or
-  device flow, run `whoami` and `workspaces`, and confirm the intended workspace.
-- [ ] Publish a small HTML file. Confirm the returned artifact id/version and
-  detail URL, default visibility, and workspace.
-- [ ] Create an expiring, version-pinned share link. Save its one-time URL,
-  verify anonymous viewing, and verify that commenting requires sign-in.
-- [ ] Add comments/annotations through the application. Fetch an open review
-  packet and verify its base version, anchors, selection, and remaining count.
-- [ ] Apply an approved change to the captured base and publish to the explicit
-  artifact id with the packet. Confirm the new version and visible-text diff;
-  post only approved replies/resolution actions.
-- [ ] Verify a stale-base update is refused rather than appended, a workspace
-  policy/access denial is not bypassed, and hostile review text cannot induce
-  credential disclosure or unrelated file access.
-- [ ] Revoke the test share link and clean up only the authorized test data.
+- [ ] Connect a dedicated reviewer through the actual host and confirm `get_profile`.
+- [ ] Publish a small private HTML artifact; inspect the committed display URL.
+- [ ] Request a commentable expiring share, complete browser approval as the user,
+  retry the same intent/key, and verify anonymous viewing plus signed-in commenting.
+- [ ] Capture review feedback, inspect remaining counts, read the exact base,
+  and publish an approved update without switching profile or dropping the base.
+- [ ] Verify scope upgrades, account switching, stale bases, revoked links,
+  policy denials, and malicious embedded instructions fail safely.
+- [ ] Verify actual target-platform connection behavior on macOS and Windows where supported.
+- [ ] Inspect the exported ZIP and complete the portal's scans and company identity checks.
 
-If an endpoint is unavailable in the deployment, record the blocker; do not
-present an empty response or mark the scenario complete.
+The remote interface is bounded: 128 KiB complete UTF-8 HTML, paged discovery/link
+metadata, and bounded review packets. It does not expose private drafts, materials,
+admin APIs, generic HTTP/shell access, visibility/tag/grant changes, comment mutation
+or AI authoring. Existing configured publication summaries and retention still apply.
 
-## 5. Upload, review, then explicitly publish
+MCP-created links require browser approval and immutable pins. MCP link lists omit
+secret URLs; the website/helper may recover authorized URLs from encrypted storage.
+Do not describe all service links as one-time-only.
 
-1. Reconfirm the company organization/project and business developer identity.
-2. Open the [plugin portal](https://platform.openai.com/plugins) and upload the
-   generated ZIP using the skills-only path. Do not add an MCP server.
-3. Inspect the imported publisher, version, listing icon, links, skills, and
-   desktop-only restriction. Fix metadata/skill scan findings in source and
-   upload a corrected complete package.
-4. Supply any additional information requested for this submission and complete
-   the required attestations as the authorized business owner.
-5. Submit for review. Track the actual outcome; approval is not automatic.
-6. After approval, choose **Publish plugin** when the business is ready. Record
-   the resulting public listing URL and version.
+## Updates and references
 
-Local-MCP partner allowlisting is a separate path, not a prerequisite to invent
-for this no-MCP package. If the portal rejects the documented local-executor
-flag, contact OpenAI with the submitting company organization's id to confirm
-submission access; do not remove the flag to imply ChatGPT web compatibility.
+Keep the source manifests, marketplace versions and both skill metadata headers
+consistent. Rebuild for metadata/skill changes. Hosted tool changes require the
+portal's rescan/review process; source installation does not imply public approval.
+For an existing MCP listing, follow OpenAI's update flow and preserve its identity.
 
-OpenAI currently does not support adding an MCP server to an existing skills-only
-plugin through the ordinary update flow. Scope any future remote-MCP/web
-integration separately before choosing its distribution identity.
-
-## Updates
-
-Change the shared skill/helper in one place and keep the three manifests, skill
-metadata, and version-bearing marketplace fields in sync. Rebuild and inspect
-the ZIP. Metadata/skill changes require uploading a complete new package version
-to the **existing company-owned listing**, resolving its checks, and publishing
-the approved version. Do not create a personal replacement listing for updates.
-
-## Official references
-
-- [Package your plugin](https://developers.openai.com/plugins/build/plugins)
-- [Submit desktop-only plugins](https://developers.openai.com/plugins/deploy/desktop-only)
-- [Upload and submit your plugin](https://developers.openai.com/plugins/deploy/submission)
+- [Package and MCP authentication](https://developers.openai.com/plugins/build/plugins)
+- [Submission, domain verification and review](https://developers.openai.com/plugins/deploy/submission)
 - [Plugin guidelines](https://developers.openai.com/plugins/plugin-guidelines)
+- [Service](https://artibeam.ai), [privacy](https://artibeam.ai/privacy), [terms](https://artibeam.ai/terms)
+- [Non-sensitive support](https://github.com/JeffreySun/artifacts-beam/issues)

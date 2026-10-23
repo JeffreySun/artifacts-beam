@@ -9,7 +9,11 @@ skill into three coding agents — **GitHub Copilot CLI**, **Claude Code**, and 
 Codex / ChatGPT desktop** — from one source of truth. There is exactly one copy of the skill; each agent
 reads its own manifest and they all load the same `skills/artifacts-beam/`.
 
-The skill lets you publish local HTML to **Artifacts Beam**, create revocable **share
+Codex now includes a remote OAuth MCP connection. The shared skill chooses MCP when
+its tools are present and otherwise retains the existing local integration for
+Copilot CLI and Claude Code; a denied MCP call never falls back to broader credentials.
+
+The skill lets you publish HTML to **Artifacts Beam**, create revocable **share
 links** anyone can open without an account, pull reviewer comments back into your chat,
 and iterate on the HTML. You sign in once through your browser with an enabled
 Microsoft, Google, or Apple provider. Anonymous share-link viewing does not imply
@@ -23,6 +27,8 @@ plugins/artifacts-beam/
 ├── plugin.json                     # portable Agent Plugins manifest (Copilot)
 ├── .claude-plugin/plugin.json      # Claude Code manifest
 ├── .codex-plugin/plugin.json       # Codex manifest
+├── .codex-plugin/mcp.json          # native Codex registered OAuth client
+├── .codex-plugin/openai-mcp.json   # hosted OpenAI package input
 ├── LICENSE                         # original MIT attribution
 └── skills/artifacts-beam/          # the ONE shared skill
     ├── SKILL.md                    # instructions + triggers (the implicit-trigger source)
@@ -43,7 +49,8 @@ at this folder:
 
 ## Requirements
 
-- **Node.js 18+** — the helper (`scripts/abeam.mjs`) uses the built-in global
+- **MCP:** a compatible host and browser OAuth; the remote tools need no local executor.
+- **Local helper: Node.js 18+** — `scripts/abeam.mjs` uses the built-in global
   `fetch`/`FormData`/`Blob` (zero dependencies).
 - A browser, once, to sign in — nothing to copy or paste
   (see [`skills/artifacts-beam/references/auth-setup.md`](skills/artifacts-beam/references/auth-setup.md)).
@@ -90,8 +97,10 @@ codex plugin add artifacts-beam@artibeam
 Adding the marketplace only makes the plugin *available*; the second command installs it.
 You can also install/enable it from the **ChatGPT desktop app → Plugins**. Codex activates
 the skill implicitly on matching intent, or explicitly via `$artifacts-beam`.
-The helper requires local Node.js execution. Its OpenAI directory package is
-desktop-only and does not provide ChatGPT web support.
+The native configuration uses `oauth.clientId: artifacts-beam-codex-cli`.
+The OpenAI upload package instead includes a hosted connection with the registered
+`artifacts-beam-openai` client and a remote-only skill. A source installation,
+production endpoint, and public directory approval are separate milestones.
 
 For local development you can skip the marketplace entirely — Codex also discovers
 skills dropped into `.agents/skills`:
@@ -104,7 +113,15 @@ bash plugins/artifacts-beam/skills/artifacts-beam/scripts/install-skill.sh
 #   pwsh plugins/artifacts-beam/skills/artifacts-beam/scripts/install-skill.ps1
 ```
 
-## One-time sign-in
+## MCP connection
+
+Use the host-managed OAuth connection, then `get_profile` to confirm identity.
+Mutations carry its stable ID as `expectedProfileId`. Scope upgrades must retain
+that profile and the exact operation intent. Public sharing returns an approval
+URL first; only the user can approve it in the browser.
+See [the complete MCP workflow](skills/artifacts-beam/references/mcp-workflow.md).
+
+## Local-helper sign-in
 
 Your browser opens, you sign in with an enabled Microsoft, Google, or Apple provider,
 and the terminal is signed in. Nothing to copy, nothing to paste.
@@ -128,9 +145,13 @@ review mode or the comment panel.
 
 ## Execution, permissions, and data handling
 
-The agent runs the readable, bundled Node helper. There is no MCP server, runtime
-package install, bundled executable, lifecycle hook, or model API call in this
-plugin. Browser opening uses the operating system's opener; on Windows a fixed
+The remote MCP is hosted at **https://artibeam.ai/mcp**. It exposes nine scoped
+artifact/review/share tools, not a generic API or local shell. It does not run a
+model; existing workspace publication-summary policy still applies.
+
+The optional local integration runs the readable, bundled Node helper. There is no
+runtime package install, bundled executable, or lifecycle hook.
+Browser opening uses the operating system's opener; on Windows a fixed
 PowerShell command receives the URL as child-process environment data.
 The host agent can use its own model normally; the helper does not start
 metered server-side AI runs.
@@ -163,7 +184,8 @@ data; never work around policy denial by copying content elsewhere.
 Claude Code and Copilot CLI are the validated local-execution targets. A skill
 loading in Claude chat or Cowork does not prove that its environment has Node,
 network access, or working account sign-in. Validate those surfaces separately
-before claiming support. OpenAI directory distribution remains desktop-only.
+before claiming support. The separate OpenAI MCP package is cloud-safe; its actual
+host sign-in, scopes and directory approval still require qualification.
 
 For non-sensitive help use [public support issues](https://github.com/JeffreySun/artifacts-beam/issues).
 Never post credentials, real private HTML, or share-link secrets there.
@@ -178,7 +200,7 @@ metadata does not change copyright history.
 - **Publisher identity:** author/owner/developer metadata is `VertiWorks Labs`,
   while repository URLs remain the real public source location. OpenAI's directory
   name comes from the selected verified business identity, not JSON alone.
-- **Current artifact contracts:** the shared skill supports bearer-token workspace
+- **Local artifact contracts:** the retained helper supports bearer-token workspace
   selection, explicit artifact-id updates, pinned shares, canonical visibility,
   comments/annotations, visible-text diffs, and model-free review packets.
   Review-based uploads use a captured base and refuse stale publication.

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "artifacts-beam": {
+      "type": "streamable-http",
+      "url": "https://artibeam.ai/mcp",
+      "extensions": {
+        "com.openai": {
+          "auth": {
+            "type": "oauth",
+            "client": {
+              "mode": "provided",
+              "clientId": "artifacts-beam-openai",
+              "tokenEndpointAuthMethod": "none"
+            },
+            "resource": "https://artibeam.ai/mcp",
+            "baseScopes": ["artifacts:read", "offline_access"],
+            "defaultScopes": ["artifacts:read", "offline_access"]
+          }
+        }
+      }
+    }
+  }
+}

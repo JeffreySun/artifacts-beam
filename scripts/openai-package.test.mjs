@@ -48,7 +48,8 @@ function trackedFixture(t) {
 }
 
 function archivePath(root) {
-  return path.join(root, "dist/artifacts-beam-openai-0.2.3.zip");
+  const version = JSON.parse(fs.readFileSync(path.join(root, CODEX), "utf8")).version;
+  return path.join(root, `dist/artifacts-beam-openai-${version}.zip`);
 }
 
 function entries(root) {
@@ -74,8 +75,8 @@ for (const [label, rel, edit] of [
   });
 }
 
-for (const value of [undefined, false]) {
-  test(`validation refuses a ${value === undefined ? "missing" : "false"} desktop-only declaration`, (t) => {
+for (const value of [undefined, true]) {
+  test(`validation refuses a ${value === undefined ? "missing" : "true"} local-executor requirement for remote MCP`, (t) => {
     const root = fixture(t);
     editJson(root, CODEX, (m) => {
       if (value === undefined) delete m.requires_local_executor;
@@ -83,7 +84,7 @@ for (const value of [undefined, false]) {
     });
     const result = run(root, "validate-plugins.mjs");
     assert.equal(result.status, 1, result.stdout + result.stderr);
-    assert.match(result.stderr, /requires_local_executor.*true/);
+    assert.match(result.stderr, /requires_local_executor.*false/);
   });
 }
 
@@ -120,7 +121,7 @@ test("validation refuses a listing icon outside the plugin package", (t) => {
   assert.match(result.stderr, /logo|asset|icon/i);
 });
 
-test("the upload ZIP is portable, company-owned, and runnable after extraction", (t) => {
+test("the upload ZIP includes authenticated remote MCP and a cloud-safe company-owned skill", (t) => {
   const root = trackedFixture(t);
   const result = run(root, "package-openai.mjs");
   assert.equal(result.status, 0, result.stdout + result.stderr);
@@ -129,23 +130,71 @@ test("the upload ZIP is portable, company-owned, and runnable after extraction",
   const manifest = JSON.parse(manifestEntry.stdout);
   assert.equal(manifest.$schema, "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json");
   assert.equal(manifest.name, "artifacts-beam");
-  assert.equal(manifest.version, "0.2.3");
+  assert.equal(manifest.version, "0.3.0");
   assert.equal(manifest.author.name, "VertiWorks Labs");
   assert.equal(manifest.extensions["com.openai"].interface.developerName, "VertiWorks Labs");
-  assert.equal(manifest.extensions["com.openai"].requires_local_executor, true);
+  assert.equal(manifest.extensions["com.openai"].requires_local_executor, false);
   assert.equal(manifest.extensions["com.openai"].interface.logo, "./assets/icon.svg");
   assert.ok(!("interface" in manifest));
   assert.ok(!("skills" in manifest));
   assert.ok(entries(root).includes("assets/icon.svg"));
   assert.ok(entries(root).includes("skills/artifacts-beam/SKILL.md"));
+  assert.ok(entries(root).includes("mcp.json"));
   const extracted = path.join(root, "extracted");
   const unzip = spawnSync("unzip", ["-q", archivePath(root), "-d", extracted], { encoding: "utf8" });
   assert.equal(unzip.status, 0, unzip.stderr);
   assert.equal(fs.readFileSync(path.join(extracted, "LICENSE"), "utf8"), fs.readFileSync(path.join(ROOT, "LICENSE"), "utf8"));
-  const help = spawnSync(process.execPath, [path.join(extracted, "skills/artifacts-beam/scripts/abeam.mjs"), "help"], { encoding: "utf8" });
-  assert.equal(help.status, 0, help.stderr);
-  assert.match(help.stdout, /review-packet/);
+  const mcp = JSON.parse(fs.readFileSync(path.join(extracted, "mcp.json"), "utf8"));
+  assert.equal(mcp.mcpServers["artifacts-beam"].type, "streamable-http");
+  assert.equal(mcp.mcpServers["artifacts-beam"].url, "https://artibeam.ai/mcp");
+  assert.deepEqual(mcp.mcpServers["artifacts-beam"].extensions["com.openai"].auth.client, {
+    mode: "provided", clientId: "artifacts-beam-openai", tokenEndpointAuthMethod: "none",
+  });
+  const skill = fs.readFileSync(path.join(extracted, "skills/artifacts-beam/SKILL.md"), "utf8");
+  assert.match(skill, /get_profile/);
+  assert.match(skill, /expectedProfileId/);
+  assert.match(skill, /approval_required/);
+  assert.doesNotMatch(skill, /abeam\.mjs|session\.json|node scripts|local Node/i);
+  assert.ok(!entries(root).some((file) => file.endsWith(".mjs")));
 });
+
+test("native Codex declares its own registered OAuth client, not the portal-only extension", (t) => {
+  const root = fixture(t);
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, CODEX), "utf8"));
+  assert.equal(manifest.mcpServers, "./.codex-plugin/mcp.json");
+  const mcp = JSON.parse(fs.readFileSync(path.join(root, PLUGIN, manifest.mcpServers), "utf8"));
+  assert.deepEqual(mcp.mcpServers["artifacts-beam"], {
+    type: "http",
+    url: "https://artibeam.ai/mcp",
+    oauth: { clientId: "artifacts-beam-codex-cli" },
+  });
+  assert.ok(!fs.existsSync(path.join(root, PLUGIN, ".mcp.json")));
+});
+
+for (const [label, file, edit] of [
+  ["native credential header", ".codex-plugin/mcp.json", (m) => {
+    m.mcpServers["artifacts-beam"].headers = { Authorization: "Bearer fake-test-credential" };
+  }],
+  ["wrong native client", ".codex-plugin/mcp.json", (m) => {
+    m.mcpServers["artifacts-beam"].oauth.clientId = "artifacts-beam-openai";
+  }],
+  ["hosted client secret", ".codex-plugin/openai-mcp.json", (m) => {
+    m.mcpServers["artifacts-beam"].extensions["com.openai"].auth.client.clientSecret = "fake-test-secret";
+  }],
+  ["untrusted endpoint", ".codex-plugin/openai-mcp.json", (m) => {
+    m.mcpServers["artifacts-beam"].url = "http://untrusted.example/mcp";
+  }],
+]) {
+  test(`packaging refuses ${label}`, (t) => {
+    const root = trackedFixture(t);
+    editJson(root, `${PLUGIN}/${file}`, edit);
+    const result = run(root, "package-openai.mjs");
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /MCP|OAuth|client|endpoint/i);
+    assert.ok(!fs.existsSync(archivePath(root)));
+    assert.doesNotMatch(result.stderr, /fake-test-credential|fake-test-secret/);
+  });
+}
 
 test("the upload allowlist excludes wrappers, tests, and untracked credentials", (t) => {
   const root = trackedFixture(t);
@@ -157,7 +206,7 @@ test("the upload allowlist excludes wrappers, tests, and untracked credentials",
   const result = run(root, "package-openai.mjs");
   assert.equal(result.status, 0, result.stdout + result.stderr);
   const files = entries(root);
-  assert.ok(files.every((file) => file === "plugin.json" || file === "LICENSE"
+  assert.ok(files.every((file) => file === "plugin.json" || file === "mcp.json" || file === "LICENSE"
     || file.startsWith("skills/") || file.startsWith("assets/")), files.join("\n"));
   assert.ok(!files.some((file) => /\.test\.mjs$|\.env$|session\.json$|untracked|\.claude-plugin|\.codex-plugin|\.git\//.test(file)));
 });
@@ -202,7 +251,7 @@ test("tracked symlinks fail without leaking data or replacing the last good ZIP"
   assert.equal(result.status, 1);
   assert.match(result.stderr, /symlink|regular file/i);
   assert.deepEqual(fs.readFileSync(archivePath(root)), before);
-  assert.deepEqual(fs.readdirSync(path.join(root, "dist")), ["artifacts-beam-openai-0.2.3.zip"]);
+  assert.deepEqual(fs.readdirSync(path.join(root, "dist")), [path.basename(archivePath(root))]);
 });
 
 test("publisher validation cannot be bypassed by calling the packager directly", (t) => {
@@ -214,12 +263,12 @@ test("publisher validation cannot be bypassed by calling the packager directly",
   assert.ok(!fs.existsSync(archivePath(root)));
 });
 
-test("a skills-only archive refuses MCP declarations instead of silently dropping them", (t) => {
+test("packaging refuses an unexpected MCP configuration path rather than dropping it", (t) => {
   const root = trackedFixture(t);
   editJson(root, CODEX, (m) => { m.mcpServers = "./.mcp.json"; });
   const result = run(root, "package-openai.mjs");
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /skills-only|MCP/i);
+  assert.match(result.stderr, /MCP|mcp/i);
   assert.ok(!fs.existsSync(archivePath(root)));
 });
 
