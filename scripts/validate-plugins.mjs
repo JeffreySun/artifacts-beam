@@ -303,7 +303,7 @@ try {
   const m = readJson(path.join(PLUGIN_DIR, ".codex-plugin", "plugin.json"));
   const allowed = new Set(["id", "name", "version", "description", "skills", "apps",
     "mcpServers", "interface", "author", "homepage", "repository", "license", "keywords",
-    "requires_local_executor"]);
+    "requires_local_executor", "extensions"]);
   const extra = Object.keys(m).filter((k) => !allowed.has(k));
   if (extra.length) fail(`Codex plugin.json: fields not accepted by Codex: ${extra.join(", ")}`);
 

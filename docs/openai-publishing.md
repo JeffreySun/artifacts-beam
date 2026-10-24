@@ -2,7 +2,7 @@
 
 ## Status
 
-The separate **Artifacts Beam MCP** plugin (`artifacts-beam-mcp`), version 0.3.0,
+The original **Artifacts Beam** plugin (`artifacts-beam`), version 0.3.0,
 includes the authenticated remote endpoint
 **https://artibeam.ai/mcp** and a cloud-safe skill. It is prepared for **With MCP**,
 not the skills-only/desktop-only intake path. Package generation does not upload,
@@ -14,17 +14,16 @@ An organization owner or Apps Management Write role is required. Manifest author
 text does not establish that verified identity. Never use a personal identity as
 a temporary substitute or include private reviewer credentials in the ZIP.
 
-OpenAI does not support adding, removing or replacing MCP servers on an existing
-plugin. The original `artifacts-beam` skills-only listing therefore cannot accept
-the MCP package as an update. The exporter now uses the distinct name
-`artifacts-beam-mcp` and display name `Artifacts Beam MCP`, with no inherited listing
-ID. Installed Codex/Claude/Copilot plugin identities and the service's MCP server
-name, endpoint and OAuth registration remain unchanged.
+Upload this metadata correction to the existing **Artifacts Beam** draft that
+already includes the remote MCP server. The exporter preserves the original
+technical/display name and any assigned source identity; it does not create a
+separate MCP-branded plugin. The server name, endpoint, OAuth registration and
+bundled skill remain unchanged.
 
-If the portal reports **"Create a new plugin to change MCP servers"**, leave the
-existing plugin's update screen and start a **new With MCP plugin** from the
-Plugins overview. Upload the newly named ZIP below. Renaming only a ZIP file or
-increasing its version cannot change an existing listing's server list.
+OpenAI does not support adding, removing or replacing MCP servers on an existing
+plugin. If it reports **"Create a new plugin to change MCP servers"**, check that
+you selected the draft containing this server, not an older skills-only listing.
+Renaming a ZIP or increasing its version cannot change that restriction.
 
 ## Build
 
@@ -35,7 +34,7 @@ download `artifacts-beam-openai` from a successful repository CI run.
 node scripts/validate-plugins.mjs
 node --test scripts/openai-package.test.mjs
 node scripts/package-openai.mjs
-unzip -t dist/artifacts-beam-mcp-openai-0.3.0.zip
+unzip -t dist/artifacts-beam-openai-0.3.0.zip
 ```
 
 Stage/commit new package inputs first: only tracked files are eligible.
@@ -82,9 +81,9 @@ IDs, workspace IDs, DCR or CIMD configuration in the package.
 ## Connect and submit
 
 1. Select the company organization/project and verified business identity.
-2. Start a **new plugin** through **With MCP** and upload
-   `artifacts-beam-mcp-openai-0.3.0.zip`, including MCP in its initial package.
-   Do not use **Upload new version** on the original `artifacts-beam` listing.
+2. Open the existing **Artifacts Beam** draft containing this MCP server and use
+   **Upload plugin to fix issues** or **Upload new version** to upload
+   `artifacts-beam-openai-0.3.0.zip`. Do not create a separate MCP-branded listing.
 3. Inspect imported publisher/version, icon, public policy URLs, cloud skill and
    MCP authentication settings. Fix findings in source and upload a complete ZIP.
 4. Complete the portal's exact domain challenge at
@@ -94,13 +93,38 @@ IDs, workspace IDs, DCR or CIMD configuration in the package.
    Read access is initial; write/share actions require their additional scopes.
    If the host cannot automatically upgrade permissions, reconnect explicitly.
 6. Scan tools and confirm the nine operations and their safety annotations.
-7. Supply a dedicated reviewer account/workspace with synthetic data, five
-   positive and three negative cases, an accessible walkthrough and release notes.
-   Credentials belong only in the portal. Run those cases before marking them done.
+7. Check **Review information**: the ZIP imports exactly five positive and three
+   negative cases plus release notes. Supply the dedicated demo account/workspace
+   through the secure portal form and an accessible walkthrough. Run the cases
+   with that account before claiming completion; credentials never belong in the ZIP.
 8. Complete attestations and submit. Only after approval choose **Publish plugin**.
 
 The publisher identity and end user's Artifacts Beam Microsoft/Google/Apple or
 company sign-in are separate. Do not make users join the publisher's organization.
+
+## Review metadata in the ZIP
+
+Edit `plugins/artifacts-beam/.codex-plugin/plugin.json` under
+`extensions.com.openai.review.test_cases`. The exporter copies `review` and
+`publication` to the same extension in root `plugin.json`; neither belongs inside
+`interface`, and a separate test-case JSON file is not used.
+
+Each case includes `description`, `prompt`, `tools_triggered` and
+`expected_behavior`. The five positive cases run in order: private publication,
+discovery/read, bounded feedback, exact-base publication, and approved sharing
+with listing/revocation. The three negative cases cover unauthorized workspace
+access, bypassing browser approval, and forcing a stale-base update.
+
+The cases describe their synthetic data and manual setup; they are procedures,
+not execution results. Use the secure review form for account access. No reviewer
+credentials, invented artifact IDs, attachment URLs or recording URL are bundled.
+Omitting `demo_recording_url`, countries and translations preserves portal values
+rather than replacing them. A real accessible walkthrough is still required for
+submission; if ZIP-managed, add its actual URL to `review.demo_recording_url`.
+
+The upload format permits partial lists, but initial MCP submission requires
+**exactly five positive and three negative cases**. After re-uploading, verify both
+read-only lists in the portal; repository validation cannot prove portal acceptance.
 
 ## Qualification checklist
 
@@ -135,8 +159,9 @@ Do not describe all service links as one-time-only.
 Keep the source manifests, marketplace versions and both skill metadata headers
 consistent. Rebuild for metadata/skill changes. Hosted tool changes require the
 portal's rescan/review process; source installation does not imply public approval.
-After the new `artifacts-beam-mcp` listing exists, preserve that identity and its
-server list for future updates. Never copy the original plugin's portal ID into it.
+Preserve the original `artifacts-beam` identity and its server list for future
+updates. This correction retains draft version 0.3.0; increment the version for a
+new release after publication.
 
 - [Package and MCP authentication](https://developers.openai.com/plugins/build/plugins)
 - [Submission, domain verification and review](https://developers.openai.com/plugins/deploy/submission)

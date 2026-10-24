@@ -49,7 +49,7 @@ function trackedFixture(t) {
 
 function archivePath(root) {
   const version = JSON.parse(fs.readFileSync(path.join(root, CODEX), "utf8")).version;
-  return path.join(root, `dist/artifacts-beam-mcp-openai-${version}.zip`);
+  return path.join(root, `dist/artifacts-beam-openai-${version}.zip`);
 }
 
 function entries(root) {
@@ -129,11 +129,11 @@ test("the upload ZIP includes authenticated remote MCP and a cloud-safe company-
   assert.equal(manifestEntry.status, 0, manifestEntry.stderr);
   const manifest = JSON.parse(manifestEntry.stdout);
   assert.equal(manifest.$schema, "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json");
-  assert.equal(manifest.name, "artifacts-beam-mcp");
+  assert.equal(manifest.name, "artifacts-beam");
   assert.equal(manifest.version, "0.3.0");
   assert.equal(manifest.author.name, "VertiWorks Labs");
   assert.equal(manifest.extensions["com.openai"].interface.developerName, "VertiWorks Labs");
-  assert.equal(manifest.extensions["com.openai"].interface.displayName, "Artifacts Beam MCP");
+  assert.equal(manifest.extensions["com.openai"].interface.displayName, "Artifacts Beam");
   assert.equal(manifest.extensions["com.openai"].requires_local_executor, false);
   assert.equal(manifest.extensions["com.openai"].interface.logo, "./assets/icon.svg");
   assert.ok(!("interface" in manifest));
@@ -159,7 +159,7 @@ test("the upload ZIP includes authenticated remote MCP and a cloud-safe company-
   assert.ok(!entries(root).some((file) => file.endsWith(".mjs")));
 });
 
-test("the separate OpenAI package never inherits a native listing ID or rewrites installed plugin identities", (t) => {
+test("the OpenAI package preserves an assigned identity without rewriting native manifests or MCP configuration", (t) => {
   const root = trackedFixture(t);
   editJson(root, CODEX, (manifest) => { manifest.id = "plugin_test_existing_listing"; });
   const nativeBefore = fs.readFileSync(path.join(root, CODEX), "utf8");
@@ -172,13 +172,51 @@ test("the separate OpenAI package never inherits a native listing ID or rewrites
   assert.equal(entry.status, 0, entry.stderr);
   const manifest = JSON.parse(entry.stdout);
   assert.equal(manifest.id, undefined);
-  assert.equal(manifest.extensions["com.openai"].id, undefined);
+  assert.equal(manifest.extensions["com.openai"].id, "plugin_test_existing_listing");
   assert.equal(fs.readFileSync(path.join(root, CODEX), "utf8"), nativeBefore);
   for (const file of [CODEX, CLAUDE, `${PLUGIN}/plugin.json`])
     assert.equal(JSON.parse(fs.readFileSync(path.join(root, file), "utf8")).name, "artifacts-beam");
   const mcp = spawnSync("unzip", ["-p", archivePath(root), "mcp.json"], { encoding: "utf8" });
   assert.equal(mcp.status, 0, mcp.stderr);
   assert.equal(mcp.stdout, hostedBefore);
+});
+
+test("the upload ZIP provides the required positive and negative review cases in the OpenAI extension", (t) => {
+  const root = trackedFixture(t);
+  const result = run(root, "package-openai.mjs");
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const archives = fs.readdirSync(path.join(root, "dist")).filter((file) => file.endsWith(".zip"));
+  assert.equal(archives.length, 1);
+  const entry = spawnSync("unzip", ["-p", path.join(root, "dist", archives[0]), "plugin.json"], { encoding: "utf8" });
+  assert.equal(entry.status, 0, entry.stderr);
+  const openai = JSON.parse(entry.stdout).extensions["com.openai"];
+  assert.equal(openai.review?.test_cases?.positive?.length, 5);
+  assert.equal(openai.review?.test_cases?.negative?.length, 3);
+  const tools = new Set();
+  for (const cases of Object.values(openai.review.test_cases)) {
+    for (const reviewCase of cases) {
+      for (const field of ["description", "prompt", "tools_triggered", "expected_behavior"]) {
+        assert.equal(typeof reviewCase[field], "string", field);
+        assert.ok(reviewCase[field].trim(), field);
+      }
+      assert.ok(reviewCase.description.length <= 4000);
+    }
+  }
+  for (const reviewCase of openai.review.test_cases.positive) {
+    for (const tool of reviewCase.tools_triggered.split(",").map((name) => name.trim()))
+      tools.add(tool);
+  }
+  assert.deepEqual([...tools].sort(), [
+    "create_artifact", "create_share_link", "get_artifact", "get_profile",
+    "get_review_packet", "list_share_links", "publish_revision", "revoke_share_link", "search_artifacts",
+  ]);
+  assert.equal(typeof openai.publication.release_notes, "string");
+  assert.ok(openai.publication.release_notes.trim());
+  assert.equal(openai.review.test_credentials, undefined);
+  assert.equal(openai.review.reviewer_instructions, undefined);
+  assert.equal(openai.review.demo_recording_url, undefined);
+  assert.equal(openai.publication.countries, undefined);
+  assert.equal(openai.publication.translations, undefined);
 });
 
 test("native Codex declares its own registered OAuth client, not the portal-only extension", (t) => {
