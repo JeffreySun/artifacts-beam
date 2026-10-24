@@ -95,7 +95,7 @@
         }
       },
       "publication": {
-        "release_notes": "0.3.0 submission metadata update: add five positive and three negative reviewer scenarios covering private publication, discovery, feedback, exact-base revisions and browser-approved sharing. Preserve the original Artifacts Beam plugin identity, MCP endpoint, OAuth configuration and skill. These are reviewer procedures, not claims of completed hosted review runs."
+        "release_notes": "Artifacts Beam 0.3.0\n\n- Connect your Artifacts Beam account and workspace through OAuth.\n- Publish private HTML artifacts and open them in display mode.\n- Find published artifacts and read review comments and annotations.\n- Apply feedback through versioned updates with stale-update protection.\n- Create expiring, version-pinned share links after browser approval.\n- Inspect and revoke share links."
       }
     }
   }
