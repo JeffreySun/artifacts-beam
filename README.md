@@ -231,12 +231,13 @@ It also checks current public-listing text limits and bundled icon paths.
 `agents/openai.yaml` keeps its separate 25-64 character skill-description limit.
 
 The packager generates an OpenAI-specific portable manifest in
-`dist/artifacts-beam-mcp-openai-<version>.zip` for the separate OpenAI plugin
-`artifacts-beam-mcp` (display name **Artifacts Beam MCP**). It does not rename the
-installed native plugins or replace the Copilot source manifest.
+`dist/artifacts-beam-openai-<version>.zip` for the original `artifacts-beam` plugin
+(display name **Artifacts Beam**). It preserves the native identity and does not
+replace the Copilot source manifest.
 The ZIP includes the hosted MCP declaration, remote-only skill, listing
-assets and original license, not local runtime scripts. CI retains it as the
-`artifacts-beam-openai` artifact.
+assets and original license, not local runtime scripts. Review metadata includes
+five positive and three negative cases from the Codex manifest's OpenAI extension.
+CI retains the ZIP as the `artifacts-beam-openai` artifact.
 The source root manifest uses Agent Plugins 1.0 metadata; its standard `skills/`
 directory remains the shared skill source for every wrapper.
 Packaging runs on Ubuntu after all three native runtime jobs succeed; Windows
@@ -248,9 +249,10 @@ Repository-marketplace installation is **not** an approved public directory
 listing. This release prepares a remote MCP upload package; it does
 not upload, submit, or publish it.
 
-Create a **new With MCP plugin** for this package. OpenAI does not allow changing
-an existing plugin's MCP server list, so do not upload it as a new version of the
-original `artifacts-beam` skills-only listing.
+Upload the corrected ZIP to the existing **Artifacts Beam** draft that already
+includes this MCP server. The package preserves its original name and server list;
+it does not create a separate MCP-branded plugin. OpenAI still cannot add an MCP
+server to a skills-only listing, so confirm you selected the draft with this server.
 
 Publication must use the **VertiWorks Labs business-verified developer identity**
 in the correct OpenAI organization/project, never a personal developer identity.
