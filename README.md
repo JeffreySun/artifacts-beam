@@ -97,6 +97,10 @@ with its registered public OAuth client. Connect through the host's browser flow
 and choose one workspace. The remote workflow needs no local executor.
 The generated OpenAI ZIP uses the separate hosted OAuth configuration and is
 prepared for **With MCP** submission; this is not a claim of directory approval.
+For ChatGPT's **Install a local plugin** ZIP path, use the
+[registered-connection local test package](docs/openai-publishing.md#testing-through-chatgpts-local-plugin-installer).
+Seeing **MCP servers: 1** in the imported package does not establish that its
+tools are connected to a ChatGPT conversation.
 
 > `artifacts-beam` is the plugin; `artibeam` is the marketplace it ships in — hence
 > `artifacts-beam@artibeam`.
@@ -238,6 +242,10 @@ The ZIP includes the hosted MCP declaration, remote-only skill, listing
 assets and original license, not local runtime scripts. Review metadata includes
 five positive and three negative cases from the Codex manifest's OpenAI extension.
 CI retains the ZIP as the `artifacts-beam-openai` artifact.
+For private ChatGPT testing, `node scripts/package-openai.mjs --chatgpt-app-id "$CHATGPT_APP_ID"`
+instead emits `dist/artifacts-beam-chatgpt-local-<version>.zip`, binding the same
+plugin to an actual registered ChatGPT MCP connection. This opt-in output is not
+for public submission; it never replaces the default archive or native manifests.
 The source root manifest uses Agent Plugins 1.0 metadata; its standard `skills/`
 directory remains the shared skill source for every wrapper.
 Packaging runs on Ubuntu after all three native runtime jobs succeed; Windows

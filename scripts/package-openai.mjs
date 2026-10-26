@@ -40,7 +40,15 @@ function regularFile(relative) {
 
 let temporary;
 try {
-  if (process.argv.length !== 2) throw new Error("Usage: node scripts/package-openai.mjs");
+  const args = process.argv.slice(2);
+  let appId;
+  if (args.length) {
+    if (args.length !== 2 || args[0] !== "--chatgpt-app-id")
+      throw new Error("Usage: node scripts/package-openai.mjs [--chatgpt-app-id <registered-app-id>]");
+    if (args[1] !== args[1].trim() || !/^(?:plugin_)?asdk_app_[0-9a-f]{32}$/.test(args[1]))
+      throw new Error("Local ChatGPT packaging requires a registered MCP app ID (asdk_app_... or plugin_asdk_app_...), not an OAuth client ID or local plugin ID.");
+    appId = args[1].replace(/^plugin_/, "");
+  }
   command(process.execPath, [path.join(ROOT, "scripts/validate-plugins.mjs")]);
   const source = JSON.parse(fs.readFileSync(regularFile(CODEX), "utf8"));
   if (source.mcpServers !== "./.codex-plugin/mcp.json" || "apps" in source)
@@ -75,6 +83,7 @@ try {
     const value = source.extensions?.["com.openai"]?.[key];
     if (value !== undefined) openai[key] = value;
   }
+  if (appId) openai.apps = "./.app.json";
   manifest.extensions = { "com.openai": openai };
   for (const relative of tracked) {
     regularFile(relative);
@@ -94,9 +103,15 @@ try {
     fs.utimesSync(file, TIMESTAMP, TIMESTAMP);
   }
   stage("plugin.json", JSON.stringify(manifest, null, 2) + "\n");
-  stage("mcp.json", fs.readFileSync(regularFile(HOSTED_MCP)));
   stage("skills/artifacts-beam/SKILL.md", fs.readFileSync(regularFile(REMOTE_SKILL)));
-  const files = ["plugin.json", "mcp.json", "skills/artifacts-beam/SKILL.md"];
+  const files = ["plugin.json", "skills/artifacts-beam/SKILL.md"];
+  if (appId) {
+    stage(".app.json", JSON.stringify({ apps: { "artifacts-beam": { id: appId } } }, null, 2) + "\n");
+    files.push(".app.json");
+  } else {
+    stage("mcp.json", fs.readFileSync(regularFile(HOSTED_MCP)));
+    files.push("mcp.json");
+  }
   for (const relative of [...tracked].sort()) {
     if (relative !== "LICENSE" && !relative.startsWith(`${PLUGIN}/assets/`)
         && relative !== `${SKILL}/agents/openai.yaml`) continue;
@@ -104,7 +119,7 @@ try {
     stage(target, fs.readFileSync(regularFile(relative)));
     files.push(target);
   }
-  const name = `${source.name}-openai-${source.version}.zip`;
+  const name = `${source.name}-${appId ? "chatgpt-local" : "openai"}-${source.version}.zip`;
   const archive = path.join(temporary, name);
   command("zip", ["-X", "-q", archive, ...files.sort()], {
     cwd: staging,
@@ -113,6 +128,8 @@ try {
   const output = path.join(outputDir, name);
   fs.renameSync(archive, output);
   console.log(`Created ${output} (${files.length} files). No upload or publication performed.`);
+  if (appId)
+    console.log("Local ChatGPT test package only, not for directory submission. Requires access to the registered MCP connection.");
 } catch (error) {
   console.error(`OpenAI packaging failed: ${error.message}`);
   process.exitCode = 1;
