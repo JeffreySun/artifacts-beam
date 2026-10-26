@@ -79,7 +79,7 @@ try {
     interface: source.interface,
   };
   if (source.id !== undefined) openai.id = source.id;
-  for (const key of ["review", "publication"]) {
+  for (const key of appId ? ["publication"] : ["review", "publication"]) {
     const value = source.extensions?.["com.openai"]?.[key];
     if (value !== undefined) openai[key] = value;
   }

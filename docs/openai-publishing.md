@@ -94,7 +94,11 @@ to that actual connection. This is private test setup, not another public listin
    additional write/share consent only when the requested actions require it.
 
 The local export keeps the same `artifacts-beam` name, display name, version,
-skill and review metadata. It replaces root `mcp.json` with `.app.json` and sets
+skill and release notes. It omits directory review metadata: plugin-level
+`review.test_cases` requires a bundled MCP server, not just a registered app
+reference, and otherwise causes the local upload to fail validation. All five
+positive and three negative cases remain in the default submission package.
+The local export replaces root `mcp.json` with `.app.json` and sets
 `extensions.com.openai.apps` to `./.app.json`. The mapping names the registered
 connection; it does not contain tokens, authorize an account, or change the
 native plugin manifests. Access to that private connection is still required.

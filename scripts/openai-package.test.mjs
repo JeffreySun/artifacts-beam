@@ -165,7 +165,7 @@ for (const id of [
   "asdk_app_0123456789abcdef0123456789abcdef",
   "plugin_asdk_app_0123456789abcdef0123456789abcdef",
 ]) {
-  test(`local ChatGPT packaging binds a registered ${id.startsWith("plugin_") ? "plugin" : "app"} ID without changing the submission archive`, (t) => {
+  test(`local ChatGPT packaging binds a registered ${id.startsWith("plugin_") ? "plugin" : "app"} ID without importing directory review metadata`, (t) => {
     const root = trackedFixture(t);
     const submission = run(root, "package-openai.mjs");
     assert.equal(submission.status, 0, submission.stdout + submission.stderr);
@@ -188,11 +188,17 @@ for (const id of [
     assert.equal(manifest.version, "0.3.0");
     assert.equal(manifest.extensions["com.openai"].interface.displayName, "Artifacts Beam");
     assert.equal(manifest.extensions["com.openai"].apps, "./.app.json");
+    assert.equal(manifest.extensions["com.openai"].review, undefined,
+      "App-bound local packages must not declare MCP review cases without a bundled MCP server.");
     assert.deepEqual(JSON.parse(extract(".app.json", true)), {
       apps: { "artifacts-beam": { id: "asdk_app_0123456789abcdef0123456789abcdef" } },
     });
     delete manifest.extensions["com.openai"].apps;
-    assert.deepEqual(manifest, JSON.parse(extract("plugin.json", false)));
+    const publicManifest = JSON.parse(extract("plugin.json", false));
+    assert.equal(publicManifest.extensions["com.openai"].review.test_cases.positive.length, 5);
+    assert.equal(publicManifest.extensions["com.openai"].review.test_cases.negative.length, 3);
+    delete publicManifest.extensions["com.openai"].review;
+    assert.deepEqual(manifest, publicManifest);
     for (const file of ["LICENSE", "assets/icon.svg", "skills/artifacts-beam/SKILL.md", "skills/artifacts-beam/agents/openai.yaml"])
       assert.equal(extract(file, true), extract(file, false));
     assert.deepEqual(fs.readFileSync(archivePath(root)), submissionBefore);
