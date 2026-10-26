@@ -55,6 +55,57 @@ wrappers or tests. `requires_local_executor: false` is under
 does not replace the last good ZIP. Symlinks and tracked credential-state paths
 are rejected, but this allowlist is not a general secret scanner.
 
+## Testing through ChatGPT's local plugin installer
+
+The default `artifacts-beam-openai-<version>.zip` is the **submission** package.
+It declares a remote server, but it does not contain a registered ChatGPT app
+binding. In the local upload we investigated, ChatGPT preserved the server and
+OAuth declaration and displayed **MCP servers: 1**, while the installed release
+had no app bindings. Its Manage panel therefore exposed only skill controls, and
+the conversation could load the skill without getting `get_profile` or other tools.
+The component count is not proof of a connected, discovered MCP tool catalog.
+
+For the [documented local MCP workflow](https://developers.openai.com/plugins/build/plugins#create-and-test-a-plugin-locally-with-an-mcp-server),
+register the server connection in ChatGPT first, then bind the existing plugin
+to that actual connection. This is private test setup, not another public listing:
+
+1. In **ChatGPT → Plugins → Add → Add custom MCP server**, enter
+   `https://artibeam.ai/mcp` and select OAuth.
+2. In **Advanced OAuth settings**, select the user-defined/predefined client,
+   client ID `artifacts-beam-openai`, and token endpoint auth method `none`.
+   Leave the client secret blank. Use `artifacts:read` and `offline_access` as
+   base scopes. Discovery supplies the authorization and token endpoints.
+   Do not select DCR or CIMD; this service uses a predefined client.
+3. Review the risk warning yourself, create the connection, and complete the
+   website sign-in/workspace consent. If setup fails, resolve the actual error;
+   do not disable authentication or invent connection details.
+4. Copy the created connection's `plugin_asdk_app_...` ID from its ChatGPT URL,
+   or its `asdk_app_...` app ID. This is **not** the OAuth client ID
+   `artifacts-beam-openai` or the local ZIP plugin's `Plugin_...` ID.
+5. Build the local-test ZIP with that ID:
+
+   ```shell
+   node scripts/package-openai.mjs --chatgpt-app-id "$CHATGPT_APP_ID"
+   ```
+
+6. Upload `dist/artifacts-beam-chatgpt-local-<version>.zip` as a new version of
+   the existing locally installed Artifacts Beam plugin. Start a new conversation
+   and confirm a real `get_profile` call before attempting publication. Complete
+   additional write/share consent only when the requested actions require it.
+
+The local export keeps the same `artifacts-beam` name, display name, version,
+skill and review metadata. It replaces root `mcp.json` with `.app.json` and sets
+`extensions.com.openai.apps` to `./.app.json`. The mapping names the registered
+connection; it does not contain tokens, authorize an account, or change the
+native plugin manifests. Access to that private connection is still required.
+The `plugin_` URL prefix is normalized to the underlying `asdk_app_` ID.
+
+Never submit this local-test ZIP to the public directory: submission rejects
+registered app references. The default build remains separate and unchanged.
+The exporter validates the ID's shape, not its existence, ownership, endpoint
+or authorization. Do not claim end-to-end readiness until the target ChatGPT
+session actually discovers and successfully calls the tools.
+
 ## Distinct native and hosted configurations
 
 | Host | Source file | Public OAuth client |
@@ -164,6 +215,7 @@ updates. This correction retains draft version 0.3.0; increment the version for 
 new release after publication.
 
 - [Package and MCP authentication](https://developers.openai.com/plugins/build/plugins)
+- [Local connection and complete-plugin testing](https://developers.openai.com/plugins/deploy/connect-chatgpt)
 - [Submission, domain verification and review](https://developers.openai.com/plugins/deploy/submission)
 - [Plugin guidelines](https://developers.openai.com/plugins/plugin-guidelines)
 - [Service](https://artibeam.ai), [privacy](https://artibeam.ai/privacy), [terms](https://artibeam.ai/terms)

@@ -47,13 +47,13 @@ function trackedFixture(t) {
   return root;
 }
 
-function archivePath(root) {
+function archivePath(root, local = false) {
   const version = JSON.parse(fs.readFileSync(path.join(root, CODEX), "utf8")).version;
-  return path.join(root, `dist/artifacts-beam-openai-${version}.zip`);
+  return path.join(root, `dist/artifacts-beam-${local ? "chatgpt-local" : "openai"}-${version}.zip`);
 }
 
-function entries(root) {
-  const result = spawnSync("unzip", ["-Z1", archivePath(root)], { encoding: "utf8" });
+function entries(root, local = false) {
+  const result = spawnSync("unzip", ["-Z1", archivePath(root, local)], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   return result.stdout.trim().split("\n");
 }
@@ -141,6 +141,8 @@ test("the upload ZIP includes authenticated remote MCP and a cloud-safe company-
   assert.ok(entries(root).includes("assets/icon.svg"));
   assert.ok(entries(root).includes("skills/artifacts-beam/SKILL.md"));
   assert.ok(entries(root).includes("mcp.json"));
+  assert.equal(manifest.extensions["com.openai"].apps, undefined);
+  assert.ok(!entries(root).includes(".app.json"));
   const extracted = path.join(root, "extracted");
   const unzip = spawnSync("unzip", ["-q", archivePath(root), "-d", extracted], { encoding: "utf8" });
   assert.equal(unzip.status, 0, unzip.stderr);
@@ -157,6 +159,75 @@ test("the upload ZIP includes authenticated remote MCP and a cloud-safe company-
   assert.match(skill, /approval_required/);
   assert.doesNotMatch(skill, /abeam\.mjs|session\.json|node scripts|local Node/i);
   assert.ok(!entries(root).some((file) => file.endsWith(".mjs")));
+});
+
+for (const id of [
+  "asdk_app_0123456789abcdef0123456789abcdef",
+  "plugin_asdk_app_0123456789abcdef0123456789abcdef",
+]) {
+  test(`local ChatGPT packaging binds a registered ${id.startsWith("plugin_") ? "plugin" : "app"} ID without changing the submission archive`, (t) => {
+    const root = trackedFixture(t);
+    const submission = run(root, "package-openai.mjs");
+    assert.equal(submission.status, 0, submission.stdout + submission.stderr);
+    const submissionBefore = fs.readFileSync(archivePath(root));
+    const nativeBefore = fs.readFileSync(path.join(root, CODEX), "utf8");
+    const result = run(root, "package-openai.mjs", "--chatgpt-app-id", id);
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.deepEqual(entries(root, true), [
+      ".app.json", "LICENSE", "assets/icon.svg", "plugin.json",
+      "skills/artifacts-beam/SKILL.md", "skills/artifacts-beam/agents/openai.yaml",
+    ]);
+    const extract = (file, local) => {
+      const entry = spawnSync("unzip", ["-p", archivePath(root, local), file], { encoding: "utf8" });
+      assert.equal(entry.status, 0, entry.stderr);
+      return entry.stdout;
+    };
+    const manifest = JSON.parse(extract("plugin.json", true));
+    assert.equal(manifest.name, "artifacts-beam");
+    assert.equal(manifest.version, "0.3.0");
+    assert.equal(manifest.extensions["com.openai"].interface.displayName, "Artifacts Beam");
+    assert.equal(manifest.extensions["com.openai"].apps, "./.app.json");
+    assert.deepEqual(JSON.parse(extract(".app.json", true)), {
+      apps: { "artifacts-beam": { id: "asdk_app_0123456789abcdef0123456789abcdef" } },
+    });
+    delete manifest.extensions["com.openai"].apps;
+    assert.deepEqual(manifest, JSON.parse(extract("plugin.json", false)));
+    for (const file of ["LICENSE", "assets/icon.svg", "skills/artifacts-beam/SKILL.md", "skills/artifacts-beam/agents/openai.yaml"])
+      assert.equal(extract(file, true), extract(file, false));
+    assert.deepEqual(fs.readFileSync(archivePath(root)), submissionBefore);
+    assert.equal(fs.readFileSync(path.join(root, CODEX), "utf8"), nativeBefore);
+    assert.match(result.stdout, /local.*ChatGPT|ChatGPT.*local/i);
+    assert.match(result.stdout, /not.*submission|not.*directory/i);
+    const first = fs.readFileSync(archivePath(root, true));
+    assert.equal(run(root, "package-openai.mjs", "--chatgpt-app-id", id).status, 0);
+    assert.deepEqual(fs.readFileSync(archivePath(root, true)), first);
+  });
+}
+
+test("local ChatGPT packaging rejects missing, unrelated and unsafe connection identifiers without replacing either ZIP", (t) => {
+  const root = trackedFixture(t);
+  const validId = "asdk_app_0123456789abcdef0123456789abcdef";
+  assert.equal(run(root, "package-openai.mjs").status, 0);
+  assert.equal(run(root, "package-openai.mjs", "--chatgpt-app-id", validId).status, 0);
+  const before = [fs.readFileSync(archivePath(root)), fs.readFileSync(archivePath(root, true))];
+  for (const args of [
+    ["--chatgpt-app-id"],
+    ["--chatgpt-app-id", ""],
+    ["--chatgpt-app-id", "artifacts-beam-openai"],
+    ["--chatgpt-app-id", "Plugin_0123456789abcdef0123456789abcdef"],
+    ["--chatgpt-app-id", "https://chatgpt.com/plugins/plugin_asdk_app_0123456789abcdef0123456789abcdef?token=do-not-log"],
+    ["--chatgpt-app-id", `${validId}\n`],
+    ["--chatgpt-app-id", validId, "--extra"],
+    ["--unknown", validId],
+  ]) {
+    const result = run(root, "package-openai.mjs", ...args);
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.match(result.stderr, /Usage|registered.*app.*ID/i);
+    assert.doesNotMatch(result.stdout + result.stderr, /do-not-log/);
+    assert.deepEqual(fs.readFileSync(archivePath(root)), before[0]);
+    assert.deepEqual(fs.readFileSync(archivePath(root, true)), before[1]);
+  }
 });
 
 test("the OpenAI package preserves an assigned identity without rewriting native manifests or MCP configuration", (t) => {
