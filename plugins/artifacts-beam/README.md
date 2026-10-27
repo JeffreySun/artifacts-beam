@@ -117,8 +117,9 @@ bash plugins/artifacts-beam/skills/artifacts-beam/scripts/install-skill.sh
 
 Use the host-managed OAuth connection, then `get_profile` to confirm identity.
 Mutations carry its stable ID as `expectedProfileId`. Scope upgrades must retain
-that profile and the exact operation intent. Public sharing returns an approval
-URL first; only the user can approve it in the browser.
+that profile and the exact operation intent. Team feedback uses the normal spec
+URL; the website handles visitors' access and commenting permissions. Only an
+explicit public-share request returns an approval URL for the user to approve.
 See [the complete MCP workflow](skills/artifacts-beam/references/mcp-workflow.md).
 
 ## Local-helper sign-in

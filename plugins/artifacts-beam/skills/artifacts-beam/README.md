@@ -7,6 +7,9 @@ captured published revision. Anonymous viewing does not mean anonymous commentin
 reviewers sign in to comment. The same skill backs **GitHub
 Copilot CLI**, **Claude Code**, and **OpenAI Codex**.
 
+For team comments and feedback, return the normal spec link without creating a
+public link or changing permissions. The website enforces visitor access.
+
 When MCP tools are present, begin with `get_profile` and follow
 [`references/mcp-workflow.md`](references/mcp-workflow.md). Codex bundles that
 authenticated remote connection; it does not need a local runtime. Public sharing
@@ -63,6 +66,7 @@ node scripts/abeam.mjs login        # sign in via your browser (see auth-setup.m
 node scripts/abeam.mjs whoami       # confirm identity
 node scripts/abeam.mjs workspaces   # check destination workspace
 node scripts/abeam.mjs publish ./mockup.html --open
+# Only for an explicitly requested public share link:
 node scripts/abeam.mjs share-create <specId> --permission comment --expires-days 7
 node scripts/abeam.mjs help         # full command list
 ```

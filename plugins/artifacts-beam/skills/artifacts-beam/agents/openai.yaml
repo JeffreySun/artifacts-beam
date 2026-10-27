@@ -15,6 +15,6 @@
 interface:
   display_name: "Artifacts Beam"
   short_description: "Publish HTML and get feedback"
-  default_prompt: "Use $artifacts-beam to publish this HTML and give me a link my team can comment on."
+  default_prompt: "Use $artifacts-beam to publish this HTML and return its normal spec link for my team."
 policy:
   allow_implicit_invocation: true

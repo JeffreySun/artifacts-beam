@@ -2,7 +2,7 @@
 
 ## Status
 
-The original **Artifacts Beam** plugin (`artifacts-beam`), version 0.3.0,
+The original **Artifacts Beam** plugin (`artifacts-beam`), version 0.3.1,
 includes the authenticated remote endpoint
 **https://artibeam.ai/mcp** and a cloud-safe skill. It is prepared for **With MCP**,
 not the skills-only/desktop-only intake path. Package generation does not upload,
@@ -34,7 +34,7 @@ download `artifacts-beam-openai` from a successful repository CI run.
 node scripts/validate-plugins.mjs
 node --test scripts/openai-package.test.mjs
 node scripts/package-openai.mjs
-unzip -t dist/artifacts-beam-openai-0.3.0.zip
+unzip -t dist/artifacts-beam-openai-0.3.1.zip
 ```
 
 Stage/commit new package inputs first: only tracked files are eligible.
@@ -138,7 +138,7 @@ IDs, workspace IDs, DCR or CIMD configuration in the package.
 1. Select the company organization/project and verified business identity.
 2. Open the existing **Artifacts Beam** draft containing this MCP server and use
    **Upload plugin to fix issues** or **Upload new version** to upload
-   `artifacts-beam-openai-0.3.0.zip`. Do not create a separate MCP-branded listing.
+   `artifacts-beam-openai-0.3.1.zip`. Do not create a separate MCP-branded listing.
 3. Inspect imported publisher/version, icon, public policy URLs, cloud skill and
    MCP authentication settings. Fix findings in source and upload a complete ZIP.
 4. Complete the portal's exact domain challenge at
@@ -215,8 +215,8 @@ Keep the source manifests, marketplace versions and both skill metadata headers
 consistent. Rebuild for metadata/skill changes. Hosted tool changes require the
 portal's rescan/review process; source installation does not imply public approval.
 Preserve the original `artifacts-beam` identity and its server list for future
-updates. This correction retains draft version 0.3.0; increment the version for a
-new release after publication.
+updates. Version 0.3.1 returns normal spec links for team comments; public share
+creation is an explicit, separate request and still requires browser approval.
 
 - [Package and MCP authentication](https://developers.openai.com/plugins/build/plugins)
 - [Local connection and complete-plugin testing](https://developers.openai.com/plugins/deploy/connect-chatgpt)

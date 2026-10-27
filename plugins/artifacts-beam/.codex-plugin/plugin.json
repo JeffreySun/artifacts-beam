@@ -1,6 +1,6 @@
 {
   "name": "artifacts-beam",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Publish private HTML, read bounded review feedback, and add exact-base revisions through the authenticated Artifacts Beam MCP. Public sharing requires your browser approval. Viewing a share can be anonymous; commenting requires sign-in.",
   "author": {
     "name": "VertiWorks Labs",
@@ -16,7 +16,7 @@
   "interface": {
     "displayName": "Artifacts Beam",
     "shortDescription": "Publish HTML and get feedback",
-    "longDescription": "Connect your account and one workspace through OAuth. Publish private HTML, find and read published artifacts, retrieve bounded review packets, and add new versions against an exact immutable base. Create expiring, version-pinned public links only after your browser approval, then list link metadata or revoke access. Workspace policy, permissions, quotas, and retention apply. The remote workflow needs no local executor; complete HTML input/output is limited to 128 KiB.",
+    "longDescription": "Connect your account and one workspace through OAuth. Publish private HTML, return normal spec links for team feedback, retrieve bounded review packets, and add new versions against an exact immutable base. The website enforces viewing and commenting permissions. Public links are a separate, explicit request requiring your browser approval. Workspace policy, quotas, and retention apply. The remote workflow needs no local executor; complete HTML input/output is limited to 128 KiB.",
     "developerName": "VertiWorks Labs",
     "category": "Productivity",
     "capabilities": [
@@ -27,7 +27,7 @@
       "Approve expiring public links in the browser",
       "List share-link metadata and revoke links"
     ],
-    "defaultPrompt": "Use $artifacts-beam to publish this HTML and give me a link my team can comment on.",
+    "defaultPrompt": "Use $artifacts-beam to publish this HTML and return its normal spec link for my team.",
     "websiteURL": "https://artibeam.ai",
     "supportURL": "https://github.com/JeffreySun/artifacts-beam/issues",
     "privacyPolicyURL": "https://artibeam.ai/privacy",
@@ -43,9 +43,9 @@
           "positive": [
             {
               "description": "1. Connect and publish a private HTML artifact. Use the dedicated demo account supplied in the secure review form, with an owned workspace that permits external MCP access and has publication capacity. Complete host-managed OAuth for that workspace; grant artifacts:read and artifacts:write when requested. Run the five positive cases in order in the same conversation. Retain the returned profile ID, artifact ID and revision for later cases. Use a new artifact for each review run.",
-              "prompt": "Use Artifacts Beam to show my connected account and workspace, then publish a new private artifact named openai-review-demo.html containing exactly this HTML: <!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>OpenAI review demo</title></head><body><h1>OpenAI review demo</h1><p>Draft</p></body></html>. Return its normal display link. Do not create a public share link.",
+              "prompt": "Use Artifacts Beam to show my connected account and workspace, then publish a new private artifact named openai-review-demo.html containing exactly this HTML: <!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>OpenAI review demo</title></head><body><h1>OpenAI review demo</h1><p>Draft</p></body></html>. Give me a link my team can comment on.",
               "tools_triggered": "get_profile, create_artifact",
-              "expected_behavior": "Identify the connected account/workspace before publication. Use the returned stable profile ID as expectedProfileId and a fresh idempotency key. Create one distinct private artifact containing the complete HTML and return the committed artifact ID, revision and displayUrl unchanged, without a /review suffix. Do not create a public link or change visibility. If write consent is needed, use the host's permission flow and preserve the intended profile."
+              "expected_behavior": "Identify the connected account/workspace before publication. Use the returned stable profile ID as expectedProfileId and a fresh idempotency key. Create one distinct private artifact containing the complete HTML and immediately return the committed artifact ID, revision and displayUrl unchanged, without a /review suffix. Team commenting does not request a public link, share approval, expiry or permission change; the website enforces visitor access. Do not call share tools or promise comment access. If write consent is needed, use the host's permission flow and preserve the intended profile."
             },
             {
               "description": "2. Discover and read the artifact created in case 1. Keep the artifact ID returned by case 1 so the reviewer can distinguish this run from previous demo artifacts. No additional setup or external attachments are needed.",
@@ -95,7 +95,7 @@
         }
       },
       "publication": {
-        "release_notes": "Artifacts Beam 0.3.0\n\n- Connect your Artifacts Beam account and workspace through OAuth.\n- Publish private HTML artifacts and open them in display mode.\n- Find published artifacts and read review comments and annotations.\n- Apply feedback through versioned updates with stale-update protection.\n- Create expiring, version-pinned share links after browser approval.\n- Inspect and revoke share links."
+        "release_notes": "Artifacts Beam 0.3.1\n\n- Publishing for team comments now returns the normal spec link without requesting public sharing.\n- Viewing and commenting permissions remain enforced by the Artifacts Beam website.\n- Public share links require an explicit request and your browser approval.\n- Publish private HTML, read review feedback, and apply versioned updates as before."
       }
     }
   }

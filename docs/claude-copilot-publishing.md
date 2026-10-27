@@ -2,7 +2,7 @@
 
 Publisher metadata: **VertiWorks Labs**. Legal service operator: **VertiWorks Labs LLC**.
 Plugin id: `artifacts-beam`. Repository marketplace id: `artibeam`.
-Prepared release: **0.3.0**.
+Prepared release: **0.3.1**.
 
 These two wrappers remain skills-only local integrations with a readable,
 dependency-free Node helper. Codex and the OpenAI upload ZIP now have separate
@@ -254,7 +254,7 @@ is a separately registered, non-default collection; do not treat the two as the
 same catalog.
 
 Use the full 40-character **merged release commit SHA** that passed CI and
-contains version 0.3.0, or a deliberately created immutable release tag.
+contains version 0.3.1, or a deliberately created immutable release tag.
 Do not enter `main` or another branch as the immutable review reference.
 Confirm the source manifest at that exact revision matches the submitted version.
 
@@ -278,7 +278,7 @@ prepare the marketplace update. Our own release PR does not approve an upstream 
 | Plugin path | `plugins/artifacts-beam` |
 | Ref to review | Optional immutable tag; leave empty when using SHA alone |
 | Commit SHA | Actual full validated merged release SHA, not a placeholder or branch |
-| Version | `0.3.0` |
+| Version | `0.3.1` |
 | License | `MIT` |
 | Author name | `VertiWorks Labs` |
 | Author URL/homepage | `https://artibeam.ai` |
