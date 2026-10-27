@@ -1,8 +1,8 @@
 {
   "name": "artifacts-beam",
   "displayName": "Artifacts Beam",
-  "description": "Publish HTML to Artifacts Beam, share revocable review links, collect comments and annotations, and publish versioned updates from your coding agent. Supports workspace selection and browser/device sign-in. Share-link viewing can be anonymous; commenting requires sign-in.",
-  "version": "0.3.0",
+  "description": "Publish HTML to Artifacts Beam, return normal spec links for team feedback, collect comments and annotations, and publish versioned updates. Website permissions control access. Public share links are a separate explicit request; commenting requires sign-in.",
+  "version": "0.3.1",
   "author": {
     "name": "VertiWorks Labs",
     "url": "https://artibeam.ai"

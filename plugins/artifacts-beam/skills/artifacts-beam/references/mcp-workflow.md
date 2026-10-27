@@ -4,7 +4,7 @@ description: "Use when users want to publish HTML on Artifacts Beam, find publis
 license: MIT
 metadata:
   author: VertiWorks Labs
-  version: "0.3.0"
+  version: "0.3.1"
   service: https://artibeam.ai
 ---
 
@@ -75,7 +75,29 @@ Return `displayUrl` exactly as returned, such as `/#/specs/<id>/v<N>`.
 Publishing, “canvas it”, sharing for review and applying feedback do not request
 the review UI. Do not append `/review` unless the user explicitly asks to open it.
 
-## Share only after browser approval
+## Return the normal spec link for team feedback
+
+For "give me a link my team can comment on", coworkers, reviews, feedback, or
+ordinary sharing, finish publication and return the normal `displayUrl` immediately.
+For an existing spec, use its known normal URL or the `displayUrl` returned by
+`get_artifact`. The website handles each visitor's sign-in and access permissions.
+A spec URL does not grant access; do not promise that a teammate can comment.
+
+These requests do not authorize a public link. Do not call `create_share_link`,
+`list_share_links`, or `revoke_share_link`, ask for share-scope consent, choose an
+expiry, or make returning the spec link conditional on approval or permission
+changes. Do not change visibility or grants or reuse a public link from an earlier
+artifact. If a teammate cannot open the spec, leave that access handling to the
+website rather than creating a public link to bypass it.
+
+Example: "Publish this HTML and give me a link my team can comment on" means
+`get_profile` → `create_artifact` → return the committed `displayUrl`. Stop there.
+
+## Create a public share link only on explicit request
+
+Use this workflow only when the user explicitly asks for public/anonymous access,
+a public share link, or a link anyone can view without existing access.
+The words "team", "comment", "review", or "share" alone do not request public access.
 
 Ask `create_share_link` for the exact artifact and immutable revision, permission
 `view` or `comment`, expiry of 1-30 days (default seven), expected profile and a

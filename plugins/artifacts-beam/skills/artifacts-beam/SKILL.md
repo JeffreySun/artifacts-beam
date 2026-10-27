@@ -4,7 +4,7 @@ description: "Use when users want to publish or version HTML on Artifacts Beam (
 license: MIT
 metadata:
   author: VertiWorks Labs
-  version: "0.3.0"
+  version: "0.3.1"
   helper: scripts/abeam.mjs
   service: https://artibeam.ai
 ---
@@ -150,12 +150,22 @@ from an earlier input URL or append it to the publication result automatically.
 An upload creates a retained immutable version; it does **not** automatically
 create a share link, enable a public live page, or promise unlimited retention.
 
+### Team comments use the normal spec link
+
+"Give me a link my team can comment on", coworkers, feedback, reviews, and ordinary
+sharing mean: publish and return the normal `detailUrl` immediately. The website
+handles visitors' sign-in and permissions. Do not check or change teammates'
+access, ask for a public-share approval, choose an expiry, or call `share-create`
+just to return this link. A normal URL does not grant or promise comment access.
+An earlier public-link request does not change this default for another artifact.
+
 ---
 
-## Workflow B — Create a share link (the headline consumer feature)
+## Workflow B — Explicit public sharing
 
-**Goal:** the user wants a link they can paste into email/chat that anyone can open —
-no sign-in required for the viewer.
+**Only use when:** the user explicitly asks for public/anonymous access, a public
+share link, or a link anyone can view without existing access. Requests for a team
+link or comments alone stay in Workflow A; website permissions remain authoritative.
 
 ```bash
 # View-only, never expires:

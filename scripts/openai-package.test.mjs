@@ -130,7 +130,7 @@ test("the upload ZIP includes authenticated remote MCP and a cloud-safe company-
   const manifest = JSON.parse(manifestEntry.stdout);
   assert.equal(manifest.$schema, "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json");
   assert.equal(manifest.name, "artifacts-beam");
-  assert.equal(manifest.version, "0.3.0");
+  assert.equal(manifest.version, "0.3.1");
   assert.equal(manifest.author.name, "VertiWorks Labs");
   assert.equal(manifest.extensions["com.openai"].interface.developerName, "VertiWorks Labs");
   assert.equal(manifest.extensions["com.openai"].interface.displayName, "Artifacts Beam");
@@ -185,7 +185,7 @@ for (const id of [
     };
     const manifest = JSON.parse(extract("plugin.json", true));
     assert.equal(manifest.name, "artifacts-beam");
-    assert.equal(manifest.version, "0.3.0");
+    assert.equal(manifest.version, "0.3.1");
     assert.equal(manifest.extensions["com.openai"].interface.displayName, "Artifacts Beam");
     assert.equal(manifest.extensions["com.openai"].apps, "./.app.json");
     assert.equal(manifest.extensions["com.openai"].review, undefined,

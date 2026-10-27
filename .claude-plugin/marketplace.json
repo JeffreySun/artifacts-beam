@@ -1,7 +1,7 @@
 {
   "name": "artibeam",
   "description": "Artifacts Beam plugins by VertiWorks Labs: publish HTML, share it, and bring feedback into your coding agent.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "owner": {
     "name": "VertiWorks Labs"
   },
@@ -9,7 +9,7 @@
     {
       "name": "artifacts-beam",
       "source": "./plugins/artifacts-beam",
-      "description": "Publish local HTML, share a revocable link anyone can open without signing up, and pull reviewer comments back into your chat to iterate."
+      "description": "Publish HTML, return normal spec links for team feedback, and pull reviewer comments back into your chat. Public sharing is explicit."
     }
   ]
 }

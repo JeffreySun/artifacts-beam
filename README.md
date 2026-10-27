@@ -6,8 +6,8 @@
 
 **Your coding agent just built you an HTML page. Now get it reviewed — without deploying anything.**
 
-Publish HTML straight from your agent, approve a link anyone can open, and pull
-feedback back into the chat. Codex uses the authenticated remote MCP; Copilot CLI
+Publish HTML straight from your agent, return a normal spec link for your team, and
+pull feedback back into the chat. Codex uses the authenticated remote MCP; Copilot CLI
 and Claude Code retain the working local helper.
 
 [![CI](https://github.com/JeffreySun/artifacts-beam/actions/workflows/ci.yml/badge.svg)](https://github.com/JeffreySun/artifacts-beam/actions/workflows/ci.yml)
@@ -32,8 +32,7 @@ deploy. Then the feedback comes back as scattered messages you have to re-type i
 you  ▸ publish this to artifacts beam and give me a link my team can comment on
 
      ✓ Published dashboard.html — version 3
-     ▸ Approve public sharing in your browser
-     ✓ Share link (comment): https://artibeam.ai/s/example-capability
+     ✓ Spec link: https://artibeam.ai/#/specs/example/v3
 
         …teammates open it in a browser and leave comments…
 
@@ -49,8 +48,9 @@ you  ▸ apply those and publish a new version
      ✓ Applied the selected feedback · Published version 4 · Returned display link
 ```
 
-**Viewing a share link needs no account or installation. Reviewers sign in to leave
-comments.** Workspace access and sharing policies still apply.
+**The website handles sign-in and permissions for spec links.** Team comments do
+not require creating a public share link. When explicitly requested, public links
+permit anonymous viewing; commenting requires sign-in.
 
 ## Why people like it
 
